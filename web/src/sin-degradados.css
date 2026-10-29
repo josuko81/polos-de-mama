@@ -1,0 +1,2 @@
+/* Quita los degradados del tema Cerulean */
+.btn, .navbar, .dropdown-item.active { background-image: none !important; }

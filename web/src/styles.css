@@ -1,0 +1,20 @@
+/* Solo lo que Bootstrap no trae */
+:root { --bs-body-font-size: 1.1rem; --marca: #1f5f5b; --marca-suave: #e6f0ee; }
+body { background: #eef3f1; }
+.navbar-marca { background: var(--marca); }
+.btn-marca { --bs-btn-bg: var(--marca); --bs-btn-border-color: var(--marca); --bs-btn-color: #fff;
+  --bs-btn-hover-bg: #174a47; --bs-btn-hover-border-color: #174a47; --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #123b38; --bs-btn-disabled-bg: var(--marca); --bs-btn-disabled-border-color: var(--marca); }
+.text-marca { color: var(--marca) !important; }
+.bg-marca-suave { background: var(--marca-suave) !important; }
+.boton-grande { min-height: 130px; font-size: 1.6rem; border-radius: 1.25rem; }
+.boton-grande .icono { font-size: 2.6rem; }
+.opcion { border-width: 2px; }
+.opcion.active { border-color: #198754; background: #e3f3ea; color: #146c43; }
+.numero-grande { font-size: 2.2rem; font-weight: 700; line-height: 1.1; }
+.paso-circulo { width: 2.2rem; height: 2.2rem; flex: 0 0 2.2rem; }
+.aviso { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 1080; min-width: 320px; }
+.cursor-pointer { cursor: pointer; }
+h1, h2 { color: var(--marca); }
+.text-secondary { color: #5b6b65 !important; }
+.form-text { color: #5b6b65; }
