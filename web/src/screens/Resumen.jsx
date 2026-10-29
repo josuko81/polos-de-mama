@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { resumenMes, porCobrar, stockPorLote, soles, totalVenta, hoy, mesDe, MESES, nombreLote, fechaCorta, etapaDe } from '../calc.js'
+import { resumenMes, porCobrar, productos, soles, totalVenta, hoy, mesDe, MESES, nombreLote, nombreVenta, fechaCorta, etapaDe, TALLAS } from '../calc.js'
+import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 
 const moverMes = (mes, d) => {
@@ -14,13 +15,14 @@ export default function Resumen({ datos, guardar, borrar }) {
   const [mes, setMes] = useState(mesDe(hoy()))
   const r = resumenMes(datos, mes)
   const deben = porCobrar(datos.ventas)
-  const stock = stockPorLote(datos)
+  // Stock sumado por diseño + color + talla, ordenado para leerlo fácil
+  const orden = (t) => (TALLAS.indexOf(t) < 0 ? 99 : TALLAS.indexOf(t))
+  const stock = productos(datos).sort((a, b) => a.nombre.localeCompare(b.nombre) || a.color.localeCompare(b.color) || orden(a.talla) - orden(b.talla))
   const enTaller = datos.lotes.filter((l) => etapaDe(l) > 0 && etapaDe(l) < 3)
-  const lote = (id) => datos.lotes.find((l) => String(l.id) === String(id))
   const titulo = `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}`
 
   const historial = [
-    ...r.ventas.map((v) => ({ ...v, tipo: 'ventas', texto: `${v.cantidad} × ${lote(v.loteId) ? nombreLote(lote(v.loteId)) : 'polo'} (${v.talla})`, monto: totalVenta(v) })),
+    ...r.ventas.map((v) => ({ ...v, tipo: 'ventas', texto: `${v.cantidad} × ${nombreVenta(v, datos.lotes)} (${v.talla})`, monto: totalVenta(v) })),
     ...r.listaGastos.map((g) => ({ ...g, tipo: 'gastos', texto: g.concepto, monto: g.monto })),
   ].sort((a, b) => (a.fecha < b.fecha ? 1 : -1))
 
@@ -86,8 +88,9 @@ export default function Resumen({ datos, guardar, borrar }) {
             <table className="table align-middle mb-0">
               <tbody>
                 {stock.map((s) => (
-                  <tr key={s.lote.id}>
-                    <td>{nombreLote(s.lote)} <span className="small text-secondary">· lote {s.lote.id}</span></td>
+                  <tr key={s.clave}>
+                    <td><span className="d-inline-flex align-items-center gap-2"><Muestra color={s.color} />{s.nombre} {s.color}</span>
+                      {s.talla && <span className="badge text-bg-light border ms-2">{s.talla}</span>}</td>
                     <td className="text-end fw-bold fs-5">{s.quedan}</td>
                   </tr>
                 ))}

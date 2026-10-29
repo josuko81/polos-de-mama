@@ -1,19 +1,16 @@
 import React from 'react'
-import { resumenMes, porCobrar, stockPorLote, soles, totalVenta, hoy, mesDe, MESES, nombreLote, fechaCorta, etapaDe } from '../calc.js'
+import { resumenMes, porCobrar, stockTotal, soles, totalVenta, hoy, mesDe, MESES, nombreVenta, fechaCorta, etapaDe } from '../calc.js'
 
 export default function Inicio({ datos, ir }) {
   const mes = mesDe(hoy())
   const r = resumenMes(datos, mes)
   const deben = porCobrar(datos.ventas).reduce((s, v) => s + totalVenta(v), 0)
-  const stock = stockPorLote(datos).reduce((s, x) => s + x.quedan, 0)
+  const stock = stockTotal(datos)
   const enTaller = datos.lotes.filter((l) => etapaDe(l) === 2).length
   const nombreMes = MESES[Number(mes.slice(5, 7)) - 1]
 
   const ultimas = [
-    ...datos.ventas.map((v) => {
-      const l = datos.lotes.find((x) => String(x.id) === String(v.loteId))
-      return { fecha: v.fecha, texto: `Vendí ${v.cantidad} ${l ? nombreLote(l) : ''} (${v.talla})`, monto: totalVenta(v), tipo: 'v' }
-    }),
+    ...datos.ventas.map((v) => ({ fecha: v.fecha, texto: `Vendí ${v.cantidad} ${nombreVenta(v, datos.lotes)} (${v.talla})`, monto: totalVenta(v), tipo: 'v' })),
     ...datos.gastos.map((g) => ({ fecha: g.fecha, texto: g.concepto, monto: g.monto, tipo: 'g' })),
   ]
     .sort((a, b) => (a.fecha < b.fecha ? 1 : -1))

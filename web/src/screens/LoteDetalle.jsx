@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { PASOS, etapaDe, rinde, MODELOS, COLORES, colorHex, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, vendidosDeLote, soles, hoy, fechaCorta } from '../calc.js'
+import { PASOS, TALLAS, etapaDe, rinde, COLORES, colorHex, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, stockPorTallaDeLote, vendidosDeLote,
+  leerTallas, sumaTallas, textoTallas, disenoPorId, soles, hoy, fechaCorta } from '../calc.js'
 import BotonBorrar from './BotonBorrar.jsx'
+import NuevoDiseno from './NuevoDiseno.jsx'
 import Muestra from './Muestra.jsx'
 import Fotos from './Fotos.jsx'
 
@@ -14,15 +16,18 @@ const CAMPOS = {
     { k: 'fecha', label: 'Fecha de compra', tipo: 'fecha' },
   ],
   2: [
-    { k: 'modelo', label: '¿Qué cuello cortaste?', tipo: 'modelo' },
-    { k: 'enviados', label: '¿Cuántos polos cortaste y mandaste al taller?', tipo: 'numero' },
+    { k: 'disenoId', label: '¿Qué diseño cortaste?', tipo: 'diseno' },
+    { k: 'enviadosT', total: 'enviados', label: '¿Cuántos cortaste de cada talla?', tipo: 'tallas' },
     { k: 'confeccion', label: '¿Cuánto cobra el taller por cada polo?', tipo: 'soles' },
   ],
   3: [
-    { k: 'recibidos', label: '¿Cuántos polos recogiste?', tipo: 'numero', ayuda: 'Si llegaron menos o algunos con falla, pon solo los buenos.' },
+    { k: 'recibidosT', total: 'recibidos', label: '¿Cuántos llegaron buenos de cada talla?', tipo: 'tallas', ayuda: 'Si llegaron menos o algunos con falla, pon solo los buenos.' },
     { k: 'otros', label: 'Pasajes u otros gastos del lote', tipo: 'soles', ayuda: 'Si no hubo, pon 0.' },
   ],
 }
+
+// Convierte {M:'40', L:''} del formulario en {M:40}
+const tallasLimpias = (o) => leerTallas(Object.fromEntries(Object.entries(o || {}).map(([t, v]) => [t, Number(String(v).replace(',', '.')) || 0])))
 
 export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
   const esNuevo = loteId === 'nuevo'
@@ -32,12 +37,17 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
   const [form, setForm] = useState({})
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
+  const [creandoDiseno, setCreandoDiseno] = useState(false)
 
   useEffect(() => {
     if (!lote) return
     const f = {}
-    CAMPOS[elegido].forEach((c) => { f[c.k] = lote[c.k] === undefined || lote[c.k] === 0 && elegido > paso ? '' : lote[c.k] })
-    if (elegido === 3 && (f.recibidos === '' || f.recibidos === undefined) && lote.enviados) f.recibidos = lote.enviados
+    CAMPOS[elegido].forEach((c) => {
+      if (c.tipo === 'tallas') f[c.k] = leerTallas(lote[c.k])
+      else f[c.k] = lote[c.k] === undefined || lote[c.k] === 0 && elegido > paso ? '' : lote[c.k]
+    })
+    // Al recoger, se parte de lo que se mandó al taller
+    if (elegido === 3 && !Object.keys(f.recibidosT).length) f.recibidosT = leerTallas(lote.enviadosT)
     if (elegido === 1 && !f.fecha) f.fecha = hoy()
     setForm(f)
     setError('')
@@ -51,6 +61,21 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
     for (const c of CAMPOS[elegido]) {
       let v = form[c.k]
       if (c.opcional && String(v ?? '').trim() === '') continue
+      if (c.tipo === 'tallas') {
+        const t = tallasLimpias(v)
+        const total = Object.values(t).reduce((s, n) => s + n, 0)
+        if (!total) return setError(`Falta: ${c.label}`)
+        datosPaso[c.k] = JSON.stringify(t)
+        datosPaso[c.total] = total
+        continue
+      }
+      if (c.tipo === 'diseno') {
+        const d = disenoPorId(v)
+        if (!d) return setError('Elige el diseño, o crea uno nuevo.')
+        datosPaso.disenoId = d.id
+        datosPaso.modelo = d.cuello
+        continue
+      }
       if (c.tipo === 'soles' || c.tipo === 'numero') {
         v = Number(String(v === undefined ? '' : v).replace(',', '.'))
         if (String(form[c.k] ?? '').trim() === '' || isNaN(v)) return setError(`Falta: ${c.label}`)
@@ -80,8 +105,10 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
   }
 
   const vista = { ...lote, ...Object.fromEntries(Object.entries(form).filter(([, v]) => v !== '')) }
+  if (form.enviadosT) vista.enviados = sumaTallas(tallasLimpias(form.enviadosT))
+  if (form.recibidosT) vista.recibidos = sumaTallas(tallasLimpias(form.recibidosT))
   const cu = costoPorPolo(vista)
-  const vendidos = esNuevo ? 0 : vendidosDeLote(lote.id, datos.ventas)
+  const vendidos = esNuevo ? 0 : vendidosDeLote(lote, datos)
   const editando = elegido <= paso
 
   return (
@@ -124,7 +151,13 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
               <div className="d-flex justify-content-between"><span>Gastado en el lote</span><b>{soles(costoTotalLote(lote))}</b></div>
               {rinde(lote) !== null && <div className="d-flex justify-content-between"><span>Cada kilo rindió</span><b>{rinde(lote)} polos</b></div>}
               {costoPorPolo(lote) !== null && <div className="d-flex justify-content-between"><span>Cada polo cuesta</span><b>{soles(costoPorPolo(lote))}</b></div>}
-              {paso >= 3 && <div className="d-flex justify-content-between"><span>Vendidos / quedan</span><b>{vendidos} / {stockDeLote(lote, datos.ventas)}</b></div>}
+              {paso >= 3 && <div className="d-flex justify-content-between"><span>Vendidos / quedan</span><b>{vendidos} / {stockDeLote(lote, datos)}</b></div>}
+              {paso >= 3 && textoTallas(stockPorTallaDeLote(lote, datos)) && (
+                <div className="d-flex justify-content-between"><span>Quedan por talla</span><b>{textoTallas(stockPorTallaDeLote(lote, datos))}</b></div>
+              )}
+              {paso === 2 && textoTallas(lote.enviadosT) && (
+                <div className="d-flex justify-content-between"><span>En el taller</span><b>{textoTallas(lote.enviadosT)}</b></div>
+              )}
             </div></div>
           )}
         </div>
@@ -135,16 +168,40 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
             <h2 className="fw-bold mb-4">{PASOS[elegido - 1].icono} {PASOS[elegido - 1].titulo}</h2>
             <div className="row g-3">
               {CAMPOS[elegido].map((c) => (
-                <div className={c.tipo === 'color' || c.tipo === 'modelo' ? 'col-12' : CAMPOS[elegido].length > 1 ? 'col-md-6' : 'col-md-8'} key={c.k}>
+                <div className={['color', 'diseno', 'tallas'].includes(c.tipo) ? 'col-12' : CAMPOS[elegido].length > 1 ? 'col-md-6' : 'col-md-8'} key={c.k}>
                   <label htmlFor={'f-' + c.k} className="fs-5 fw-bold mb-2">{c.label}</label>
-                  {c.tipo === 'modelo' ? (
-                    <div className="d-flex flex-wrap gap-2">
-                      {MODELOS.map((m) => (
-                        <button key={m} type="button" className={'btn btn-lg btn-outline-secondary opcion flex-fill py-3 ' + (form.modelo === m ? 'active' : '')}
-                          onClick={() => setForm((f) => ({ ...f, modelo: m }))}>
-                          <span className="fs-3 me-2">{m === 'Cuello V' ? 'Ⅴ' : '◯'}</span>{m}
-                        </button>
+                  {c.tipo === 'diseno' ? (
+                    <>
+                      <div className="d-flex flex-wrap gap-2">
+                        {(datos.disenos || []).map((d) => (
+                          <button key={d.id} type="button" className={'btn btn-lg btn-outline-secondary opcion text-start ' + (String(form.disenoId) === String(d.id) ? 'active' : '')}
+                            onClick={() => setForm((f) => ({ ...f, disenoId: d.id }))}>
+                            <span className="d-block fw-bold">{d.nombre}</span>
+                            <span className="d-block small">{d.cuello}</span>
+                          </button>
+                        ))}
+                        {!creandoDiseno && (
+                          <button type="button" className="btn btn-lg btn-outline-warning border-2 border-dashed" onClick={() => setCreandoDiseno(true)}>＋ Nuevo diseño</button>
+                        )}
+                      </div>
+                      {creandoDiseno && (
+                        <div className="mt-3">
+                          <NuevoDiseno datos={datos} guardar={guardar} onCancelar={() => setCreandoDiseno(false)}
+                            onListo={(id) => { setCreandoDiseno(false); setForm((f) => ({ ...f, disenoId: id })) }} />
+                        </div>
+                      )}
+                    </>
+                  ) : c.tipo === 'tallas' ? (
+                    <div className="row g-2">
+                      {TALLAS.map((t) => (
+                        <div className="col-4" key={t}>
+                          <label htmlFor={`f-${c.k}-${t}`} className="small fw-bold d-block text-center">{t}</label>
+                          <input id={`f-${c.k}-${t}`} className="form-control form-control-lg text-center fs-4" inputMode="numeric" placeholder="0"
+                            value={(form[c.k] || {})[t] ?? ''}
+                            onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setForm((f) => ({ ...f, [c.k]: { ...(f[c.k] || {}), [t]: v } })) }} />
+                        </div>
                       ))}
+                      <div className="col-12 text-end fs-5">Total: <b>{sumaTallas(tallasLimpias(form[c.k]))}</b> polos</div>
                     </div>
                   ) : c.tipo === 'color' ? (
                     <>

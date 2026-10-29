@@ -80,32 +80,155 @@ export const rinde = (l) => (num(l.kilos) > 0 && num(l.recibidos) > 0 ? Math.rou
 // Costo por polo: solo se sabe cuando ya llegaron los polos del taller
 export const costoPorPolo = (l) => (num(l.recibidos) > 0 ? costoTotalLote(l) / num(l.recibidos) : null)
 
-export const vendidosDeLote = (loteId, ventas) =>
-  ventas.filter((v) => String(v.loteId) === String(loteId)).reduce((s, v) => s + num(v.cantidad), 0)
+// ---------- Diseños ----------
+// La app registra aquí los diseños al cargar los datos, para poder nombrar lotes y ventas.
+let disenosActuales = []
+export const registrarDisenos = (lista) => { disenosActuales = lista || [] }
+export const disenoPorId = (id) => disenosActuales.find((d) => String(d.id) === String(id)) || null
+export const nombreDiseno = (id) => { const d = disenoPorId(id); return d ? d.nombre : '' }
 
-export const stockDeLote = (l, ventas) => (etapaDe(l) >= 3 ? num(l.recibidos) - vendidosDeLote(l.id, ventas) : 0)
+// Cantidades por talla: se guardan en la hoja como texto JSON, p. ej. {"M":40,"L":28}
+export const leerTallas = (v) => {
+  let o = v
+  if (typeof v === 'string') { try { o = JSON.parse(v) } catch (e) { o = null } }
+  const r = {}
+  if (o && typeof o === 'object') Object.keys(o).forEach((t) => { if (num(o[t]) > 0) r[t] = num(o[t]) })
+  return r
+}
+export const sumaTallas = (o) => Object.values(leerTallas(o)).reduce((s, n) => s + n, 0)
+export const textoTallas = (o) => {
+  const t = leerTallas(o)
+  return [...TALLAS, ...Object.keys(t).filter((k) => !TALLAS.includes(k))].filter((k) => t[k]).map((k) => `${k} ${t[k]}`).join(' · ')
+}
 
-// Antes de cortar el lote todavía no tiene cuello: se llama por su tela
-export const nombreLote = (l) => (l.modelo ? [l.modelo, l.color].filter(Boolean).join(' ') : `Tela ${l.color || ''}`.trim())
+// Antes de cortar, el lote se llama por su tela; después, por su diseño y color
+export const nombreLote = (l) => {
+  if (l.disenoId && nombreDiseno(l.disenoId)) return `${nombreDiseno(l.disenoId)} ${l.color || ''}`.trim()
+  return l.modelo ? [l.modelo, l.color].filter(Boolean).join(' ') : `Tela ${l.color || ''}`.trim()
+}
+
+// ---------- Stock ----------
+// Un "producto" es diseño + color + talla. Si varios lotes tienen el mismo producto, su stock se suma.
+// Al vender se descuenta primero del lote más antiguo, así el costo de cada venta sale de su lote real.
+const baseDeLote = (l) => (l.disenoId ? 'd:' + l.disenoId : 'm:' + (l.modelo || ''))
+const baseDeVenta = (v) => (v.disenoId ? 'd:' + v.disenoId : null)
+const colorNorm = (c) => String(c || '').trim().toLowerCase()
+
+// Polos que entraron a stock de un lote, por talla. Los lotes antiguos sin tallas usan '' (sin talla).
+const unidadesLote = (l) => {
+  if (etapaDe(l) < 3) return {}
+  const t = leerTallas(l.recibidosT)
+  return Object.keys(t).length ? t : { '': num(l.recibidos) }
+}
+
+const cacheInventario = new WeakMap()
+export function inventario(datos) {
+  if (cacheInventario.has(datos)) return cacheInventario.get(datos)
+  const orden = (a, b) => (String(a.fecha) < String(b.fecha) ? -1 : String(a.fecha) > String(b.fecha) ? 1 : num(a.id) - num(b.id))
+  const lotes = datos.lotes.filter((l) => etapaDe(l) >= 3).sort(orden)
+  const restante = {}
+  lotes.forEach((l) => { restante[l.id] = { ...unidadesLote(l) } })
+  const costoVentas = new Map()
+
+  const sacar = (l, talla, cantidad) => {
+    const r = restante[l.id]
+    const k = r[talla] !== undefined ? talla : r[''] !== undefined ? '' : talla
+    const n = Math.min(cantidad, Math.max(0, r[k] || 0))
+    r[k] = (r[k] || 0) - n
+    return n
+  }
+
+  ;[...datos.ventas].sort(orden).forEach((v) => {
+    let falta = num(v.cantidad)
+    let costo = 0
+    const viejo = !baseDeVenta(v) && datos.lotes.find((l) => String(l.id) === String(v.loteId))
+    if (viejo) {
+      // Venta anotada antes de los diseños: sale de su lote
+      if (restante[viejo.id]) sacar(viejo, v.talla, falta)
+      costo = falta * (costoPorPolo(viejo) || 0)
+    } else {
+      const candidatos = lotes.filter((l) => baseDeLote(l) === baseDeVenta(v) && colorNorm(l.color) === colorNorm(v.color))
+      for (const l of candidatos) {
+        if (!falta) break
+        const n = sacar(l, v.talla, falta)
+        costo += n * (costoPorPolo(l) || 0)
+        falta -= n
+      }
+      // Si se vendió más de lo anotado, se usa el costo del último lote
+      if (falta && candidatos.length) costo += falta * (costoPorPolo(candidatos[candidatos.length - 1]) || 0)
+    }
+    costoVentas.set(String(v.id), costo)
+  })
+
+  const res = { lotes, restante, costoVentas }
+  cacheInventario.set(datos, res)
+  return res
+}
+
+export const stockDeLote = (l, datos) => {
+  const r = inventario(datos).restante[l.id]
+  return r ? Object.values(r).reduce((s, n) => s + Math.max(0, n), 0) : 0
+}
+export const stockPorTallaDeLote = (l, datos) => inventario(datos).restante[l.id] || {}
+export const vendidosDeLote = (l, datos) => (etapaDe(l) >= 3 ? num(l.recibidos) - stockDeLote(l, datos) : 0)
+
+// Productos con stock (diseño + color + talla), sumando todos sus lotes, del más antiguo al más nuevo
+export function productos(datos) {
+  const { lotes, restante } = inventario(datos)
+  const mapa = new Map()
+  lotes.forEach((l) => {
+    Object.entries(restante[l.id]).forEach(([talla, n]) => {
+      if (n <= 0) return
+      const clave = `${baseDeLote(l)}|${colorNorm(l.color)}|${talla}`
+      if (!mapa.has(clave)) {
+        mapa.set(clave, {
+          clave, base: baseDeLote(l), disenoId: l.disenoId || '', modelo: l.modelo || '',
+          nombre: l.disenoId ? nombreDiseno(l.disenoId) : l.modelo || 'Polo', color: colorNorm(l.color), talla, quedan: 0, lotes: [],
+        })
+      }
+      const p = mapa.get(clave)
+      p.quedan += n
+      p.lotes.push({ lote: l, quedan: n, costo: costoPorPolo(l) })
+    })
+  })
+  return [...mapa.values()]
+}
+
+// Costo de vender `cantidad` de un producto, sacando del lote más antiguo primero
+export function costoEstimado(producto, cantidad) {
+  let falta = cantidad
+  let costo = 0
+  for (const x of producto.lotes) {
+    const n = Math.min(falta, x.quedan)
+    costo += n * (x.costo || 0)
+    falta -= n
+    if (!falta) break
+  }
+  if (falta && producto.lotes.length) costo += falta * (producto.lotes[producto.lotes.length - 1].costo || 0)
+  return costo
+}
+
+export const nombreVenta = (v, lotes) => {
+  if (v.disenoId) return `${nombreDiseno(v.disenoId) || 'Polo'} ${v.color || ''}`.trim()
+  const l = lotes.find((x) => String(x.id) === String(v.loteId))
+  return l ? nombreLote(l) : 'polo'
+}
 
 // Las fotos del lote se guardan como ids separados por comas
 export const fotosDe = (l) => String((l && l.fotos) || '').split(',').map((x) => x.trim()).filter(Boolean)
 
 export const totalVenta = (v) => num(v.cantidad) * num(v.precio)
 
-export const costoVenta = (v, lotes) => {
-  const l = lotes.find((x) => String(x.id) === String(v.loteId))
-  return l ? num(v.cantidad) * (costoPorPolo(l) || 0) : 0
-}
+export const costoVenta = (v, datos) => inventario(datos).costoVentas.get(String(v.id)) || 0
 
 export const mesDe = (iso) => (iso || '').slice(0, 7) // "2026-10"
 
 export function resumenMes(datos, mes) {
-  const { lotes, ventas, gastos } = datos
+  const { ventas, gastos } = datos
   const vMes = ventas.filter((v) => mesDe(v.fecha) === mes)
   const gMes = gastos.filter((g) => mesDe(g.fecha) === mes)
   const vendido = vMes.reduce((s, v) => s + totalVenta(v), 0)
-  const costoPolos = vMes.reduce((s, v) => s + costoVenta(v, lotes), 0)
+  const costoPolos = vMes.reduce((s, v) => s + costoVenta(v, datos), 0)
   const gastosMes = gMes.reduce((s, g) => s + num(g.monto), 0)
   return {
     vendido,
@@ -121,8 +244,4 @@ export function resumenMes(datos, mes) {
 
 export const porCobrar = (ventas) => ventas.filter((v) => !v.pagado)
 
-export function stockPorLote(datos) {
-  return datos.lotes
-    .filter((l) => etapaDe(l) >= 3)
-    .map((l) => ({ lote: l, quedan: stockDeLote(l, datos.ventas), costo: costoPorPolo(l) }))
-}
+export const stockTotal = (datos) => productos(datos).reduce((s, p) => s + p.quedan, 0)

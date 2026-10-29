@@ -1,5 +1,5 @@
 import React from 'react'
-import { PASOS, etapaDe, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, soles, fechaCorta } from '../calc.js'
+import { PASOS, etapaDe, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, stockPorTallaDeLote, textoTallas, soles, fechaCorta } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import { FotoMini } from './Fotos.jsx'
 
@@ -9,9 +9,9 @@ const COLUMNAS = [
   { id: 'agotado', titulo: 'Vendido todo', icono: '📦', color: 'dark' },
 ]
 
-const columnaDe = (l, ventas) => {
+const columnaDe = (l, datos) => {
   const e = etapaDe(l) || 1
-  return e >= 3 && stockDeLote(l, ventas) <= 0 ? 'agotado' : e
+  return e >= 3 && stockDeLote(l, datos) <= 0 ? 'agotado' : e
 }
 
 function Tarjeta({ l, datos, ir }) {
@@ -32,8 +32,10 @@ function Tarjeta({ l, datos, ir }) {
         {e === 1 && (l.rollos > 0 || l.kilos > 0) && fila('Tela', [l.rollos > 0 && `${l.rollos} ${l.rollos == 1 ? 'rollo' : 'rollos'}`, l.kilos > 0 && `${l.kilos} kg`].filter(Boolean).join(' · '))}
         {e === 1 && fila('Costó', soles(l.tela))}
         {e === 2 && fila('Polos en el taller', l.enviados)}
+        {e === 2 && textoTallas(l.enviadosT) && <div className="small text-secondary text-end">{textoTallas(l.enviadosT)}</div>}
         {e === 2 && l.confeccion > 0 && fila('Al taller le pagas', soles(l.enviados * l.confeccion))}
-        {e >= 3 && fila('Quedan', `${stockDeLote(l, datos.ventas)} de ${l.recibidos}`)}
+        {e >= 3 && fila('Quedan', `${stockDeLote(l, datos)} de ${l.recibidos}`)}
+        {e >= 3 && textoTallas(stockPorTallaDeLote(l, datos)) && <div className="small text-secondary text-end">{textoTallas(stockPorTallaDeLote(l, datos))}</div>}
         {e >= 3 && cu !== null && fila('Cada polo cuesta', soles(cu))}
         {e === 2 && fila('Gastado hasta ahora', soles(costoTotalLote(l)))}
         <button className={'btn w-100 mt-3 fw-bold ' + (sig ? 'btn-marca' : 'btn-outline-secondary')}>
@@ -46,7 +48,7 @@ function Tarjeta({ l, datos, ir }) {
 
 export default function Lotes({ datos, ir }) {
   const lotes = [...datos.lotes].sort((a, b) => Number(b.id) - Number(a.id))
-  const grupos = Object.fromEntries(COLUMNAS.map((c) => [c.id, lotes.filter((l) => columnaDe(l, datos.ventas) === c.id)]))
+  const grupos = Object.fromEntries(COLUMNAS.map((c) => [c.id, lotes.filter((l) => columnaDe(l, datos) === c.id)]))
 
   return (
     <>

@@ -14,17 +14,24 @@ function llamar(funcion, ...args) {
 const CLAVE = 'polos-de-mama-demo'
 
 const EJEMPLO = {
+  disenos: [
+    { id: 'd1', nombre: 'Clásico', cuello: 'Cuello redondo' },
+    { id: 'd2', nombre: 'Básico V', cuello: 'Cuello V' },
+  ],
   lotes: [
-    { id: 1, fecha: '2026-10-03', modelo: 'Cuello redondo', color: 'negro', paso: 5, rollos: 2, kilos: 19, precioKilo: 20, enviados: 100, recibidos: 98, tela: 380, corte: 50, confeccion: 3.5, etiquetas: 40, otros: 20 },
-    { id: 2, fecha: '2026-10-08', modelo: 'Cuello V', color: 'gris', paso: 5, rollos: 1, kilos: 11, precioKilo: 20, enviados: 50, recibidos: 50, tela: 220, corte: 30, confeccion: 3.8, etiquetas: 20, otros: 10 },
-    { id: 3, fecha: '2026-10-17', modelo: 'Cuello redondo', color: 'blanco', paso: 3, rollos: 2, kilos: 15, precioKilo: 20, enviados: 60, recibidos: 0, tela: 300, corte: 30, confeccion: 4.5, etiquetas: 0, otros: 0 },
+    { id: 1, fecha: '2026-10-03', disenoId: 'd1', modelo: 'Cuello redondo', color: 'negro', paso: 5, rollos: 2, kilos: 19, precioKilo: 20, enviados: 100, recibidos: 98,
+      enviadosT: '{"M":40,"Estándar":31,"L":29}', recibidosT: '{"M":40,"Estándar":30,"L":28}', tela: 380, confeccion: 3.5, otros: 20 },
+    { id: 2, fecha: '2026-10-08', disenoId: 'd2', modelo: 'Cuello V', color: 'gris', paso: 5, rollos: 1, kilos: 11, precioKilo: 20, enviados: 50, recibidos: 50,
+      enviadosT: '{"M":20,"Estándar":15,"L":15}', recibidosT: '{"M":20,"Estándar":15,"L":15}', tela: 220, confeccion: 3.8, otros: 10 },
+    { id: 3, fecha: '2026-10-17', disenoId: 'd1', modelo: 'Cuello redondo', color: 'blanco', paso: 3, rollos: 2, kilos: 15, precioKilo: 20, enviados: 60, recibidos: 0,
+      enviadosT: '{"M":20,"Estándar":20,"L":20}', tela: 300, confeccion: 4.5, otros: 0 },
   ],
   ventas: [
-    { id: 'v1', fecha: '2026-10-10', loteId: 1, talla: 'M', cantidad: 12, precio: 14, pagado: true, cliente: '' },
-    { id: 'v2', fecha: '2026-10-12', loteId: 1, talla: 'L', cantidad: 3, precio: 16, pagado: true, cliente: '' },
-    { id: 'v3', fecha: '2026-10-15', loteId: 1, talla: 'Estándar', cantidad: 24, precio: 14, pagado: false, cliente: 'Sra. Rosa (mayorista)' },
-    { id: 'v4', fecha: '2026-10-20', loteId: 1, talla: 'L', cantidad: 2, precio: 16, pagado: true, cliente: '' },
-    { id: 'v5', fecha: '2026-10-24', loteId: 2, talla: 'M', cantidad: 10, precio: 14, pagado: true, cliente: '' },
+    { id: 'v1', fecha: '2026-10-10', disenoId: 'd1', color: 'negro', talla: 'M', cantidad: 12, precio: 14, pagado: true, cliente: '' },
+    { id: 'v2', fecha: '2026-10-12', disenoId: 'd1', color: 'negro', talla: 'L', cantidad: 3, precio: 16, pagado: true, cliente: '' },
+    { id: 'v3', fecha: '2026-10-15', disenoId: 'd1', color: 'negro', talla: 'Estándar', cantidad: 24, precio: 14, pagado: false, cliente: 'Sra. Rosa (mayorista)' },
+    { id: 'v4', fecha: '2026-10-20', disenoId: 'd1', color: 'negro', talla: 'L', cantidad: 2, precio: 16, pagado: true, cliente: '' },
+    { id: 'v5', fecha: '2026-10-24', disenoId: 'd2', color: 'gris', talla: 'M', cantidad: 10, precio: 14, pagado: true, cliente: '' },
   ],
   gastos: [
     { id: 'g1', fecha: '2026-10-05', concepto: 'Pasajes a la feria', categoria: 'Pasajes', monto: 24 },
@@ -36,7 +43,7 @@ const EJEMPLO = {
 function leerDemo() {
   try {
     const t = localStorage.getItem(CLAVE)
-    if (t) return JSON.parse(t)
+    if (t) return { disenos: [], ...JSON.parse(t) }
   } catch (e) {}
   return JSON.parse(JSON.stringify(EJEMPLO))
 }

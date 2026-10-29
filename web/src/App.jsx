@@ -6,6 +6,8 @@ import Gaste from './screens/Gaste.jsx'
 import Lotes from './screens/Lotes.jsx'
 import LoteDetalle from './screens/LoteDetalle.jsx'
 import CompraTela from './screens/CompraTela.jsx'
+import Disenos from './screens/Disenos.jsx'
+import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
 const MENU = [
@@ -13,6 +15,7 @@ const MENU = [
   { id: 'vendi', texto: 'Vendí', icono: '💰' },
   { id: 'gaste', texto: 'Gasté', icono: '🧾' },
   { id: 'lotes', texto: 'Mis lotes', icono: '🧵' },
+  { id: 'disenos', texto: 'Diseños', icono: '👕' },
   { id: 'resumen', texto: '¿Cómo me va?', icono: '📊' },
 ]
 
@@ -58,6 +61,7 @@ export default function App() {
     if (mensaje) setAviso(mensaje)
   }
 
+  if (datos) registrarDisenos(datos.disenos)
   const props = { datos, ir, guardar, guardarVarios, borrar }
 
   return (
@@ -102,6 +106,7 @@ export default function App() {
         {datos && pantalla === 'lote' && loteId === 'nuevo' && <CompraTela {...props} />}
         {datos && pantalla === 'lote' && loteId !== 'nuevo' && <LoteDetalle key={loteId} {...props} loteId={loteId} />}
         {datos && pantalla === 'resumen' && <Resumen {...props} />}
+        {datos && pantalla === 'disenos' && <Disenos {...props} />}
       </main>
 
       {aviso && <div className="alert alert-success shadow aviso fs-5 text-center">✅ {aviso}</div>}

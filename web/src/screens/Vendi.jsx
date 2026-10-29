@@ -1,38 +1,60 @@
 import React, { useState } from 'react'
-import { stockPorLote, nombreLote, soles, TALLAS, PRECIOS, hoy } from '../calc.js'
+import { productos, costoEstimado, disenoPorId, fotosDe, soles, TALLAS, PRECIOS, hoy } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import { FotoMini } from './Fotos.jsx'
 
 const precioDe = (t) => (PRECIOS[t] ? String(PRECIOS[t]) : '')
 
+// Se vende por diseño + color + talla; el stock ya viene sumado de todos los lotes
 export default function Vendi({ datos, guardar, ir }) {
-  const disponibles = stockPorLote(datos).filter((x) => x.quedan > 0)
-  const [loteId, setLoteId] = useState(disponibles[0] ? disponibles[0].lote.id : null)
-  const [talla, setTalla] = useState(TALLAS[0])
+  const prods = productos(datos)
+  const bases = [...new Map(prods.map((p) => [p.base, p])).values()]
+  const [base, setBase] = useState(bases[0] ? bases[0].base : null)
+  const coloresDe = (b) => [...new Set(prods.filter((p) => p.base === b).map((p) => p.color))]
+  const primeraTalla = (b, c) => TALLAS.find((t) => prods.some((x) => x.base === b && x.color === c && (x.talla === t || x.talla === ''))) || TALLAS[0]
+  const [color, setColor] = useState(bases[0] ? coloresDe(bases[0].base)[0] : null)
+  const [talla, setTalla] = useState(() => (bases[0] ? primeraTalla(bases[0].base, coloresDe(bases[0].base)[0]) : TALLAS[0]))
   const [cantidad, setCantidad] = useState(1)
-  const [precio, setPrecio] = useState(precioDe(TALLAS[0]))
+  const [precio, setPrecio] = useState(() => precioDe(talla))
   const [pagado, setPagado] = useState(true)
   const [cliente, setCliente] = useState('')
   const [fecha, setFecha] = useState(hoy())
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
-  const sel = disponibles.find((x) => String(x.lote.id) === String(loteId))
+  // Producto para cada talla del color elegido. Los lotes antiguos sin tallas sirven para cualquier talla.
+  const delColor = prods.filter((p) => p.base === base && p.color === color)
+  const sinTalla = delColor.find((p) => p.talla === '')
+  const productoDe = (t) => sinTalla || delColor.find((p) => p.talla === t) || null
+  const sel = productoDe(talla)
+  const quedan = sel ? sel.quedan : 0
+
   const p = Number(String(precio).replace(',', '.')) || 0
   const total = cantidad * p
-  const ganancia = sel && sel.costo !== null && p > 0 ? total - cantidad * sel.costo : null
+  const ganancia = sel && p > 0 ? total - costoEstimado(sel, cantidad) : null
+
   const elegirTalla = (t) => { setTalla(t); setPrecio(precioDe(t)) }
+  const elegirColor = (c) => { setColor(c); elegirTalla(primeraTalla(base, c)) }
+  const elegirBase = (b) => {
+    const c = coloresDe(b)[0]
+    setBase(b)
+    setColor(c)
+    elegirTalla(primeraTalla(b, c))
+  }
 
   const enviar = async (otra) => {
     setError('')
-    if (!sel) return setError('Elige qué polo vendiste.')
+    if (!sel) return setError('No te quedan polos de esa talla. Elige otra.')
     if (!cantidad || cantidad < 1) return setError('La cantidad tiene que ser al menos 1.')
-    if (cantidad > sel.quedan) return setError(`Solo te quedan ${sel.quedan} de ese polo.`)
+    if (cantidad > quedan) return setError(`Solo te quedan ${quedan} de ese polo en talla ${talla}.`)
     if (!p) return setError('Escribe a cuánto vendiste cada polo.')
     if (!pagado && !cliente.trim()) return setError('Si te deben, escribe quién es, para acordarte.')
+    const venta = sel.disenoId
+      ? { fecha, disenoId: sel.disenoId, color: sel.color, talla, cantidad, precio: p, pagado, cliente: cliente.trim() }
+      : { fecha, loteId: sel.lotes[0].lote.id, color: sel.color, talla, cantidad, precio: p, pagado, cliente: cliente.trim() }
     setGuardando(true)
     try {
-      await guardar('ventas', { fecha, loteId: sel.lote.id, talla, cantidad, precio: p, pagado, cliente: cliente.trim() }, `Venta guardada: ${soles(total)}`)
+      await guardar('ventas', venta, `Venta guardada: ${soles(total)}`)
       if (otra) { setCantidad(1); setPrecio(precioDe(talla)); setCliente(''); setPagado(true) } else ir('inicio')
     } catch (e) {
       setError('No se pudo guardar. Revisa el internet y vuelve a intentar.')
@@ -41,7 +63,7 @@ export default function Vendi({ datos, guardar, ir }) {
     }
   }
 
-  if (disponibles.length === 0) {
+  if (prods.length === 0) {
     return (
       <div className="card border-0 shadow-sm"><div className="card-body p-5 text-center">
         <h2 className="fw-bold">No tienes polos para vender todavía</h2>
@@ -51,45 +73,75 @@ export default function Vendi({ datos, guardar, ir }) {
     )
   }
 
+  const fotoDe = (b, c) => {
+    const x = prods.filter((q) => q.base === b && (!c || q.color === c)).flatMap((q) => q.lotes.map((y) => y.lote)).find((l) => fotosDe(l).length)
+    return x || null
+  }
+  const nombreBase = (b) => (b.disenoId ? `${b.nombre}` : b.nombre)
+  const cuelloBase = (b) => (b.disenoId ? (disenoPorId(b.disenoId) || {}).cuello : 'Sin diseño')
+
   return (
     <div className="row g-4">
       <div className="col-lg-8">
         <h1 className="fw-bold mb-4">💰 Vendí</h1>
 
         <div className="card border-0 shadow-sm mb-3"><div className="card-body p-4">
-          <div className="fs-5 fw-bold mb-3">1. ¿Qué polo vendiste?</div>
+          <div className="fs-5 fw-bold mb-3">1. ¿Qué diseño?</div>
           <div className="row g-2">
-            {disponibles.map((x) => (
-              <div className="col-md-6" key={x.lote.id}>
-                <button
-                  className={'btn btn-outline-secondary opcion w-100 text-start p-3 ' + (String(x.lote.id) === String(loteId) ? 'active' : '')}
-                  onClick={() => setLoteId(x.lote.id)}
-                >
-                  <div className="d-flex align-items-center gap-3">
-                    <FotoMini lote={x.lote} />
-                    <div>
-                      <div className="fw-bold fs-5 d-flex align-items-center gap-2"><Muestra color={x.lote.color} />{nombreLote(x.lote)}</div>
-                      <div className="small">Lote {x.lote.id} · quedan <b>{x.quedan}</b>{x.costo !== null && <> · cada uno te costó {soles(x.costo)}</>}</div>
+            {bases.map((b) => {
+              const n = prods.filter((x) => x.base === b.base).reduce((s, x) => s + x.quedan, 0)
+              const foto = fotoDe(b.base)
+              return (
+                <div className="col-md-6" key={b.base}>
+                  <button className={'btn btn-outline-secondary opcion w-100 text-start p-3 ' + (b.base === base ? 'active' : '')} onClick={() => elegirBase(b.base)}>
+                    <div className="d-flex align-items-center gap-3">
+                      {foto && <FotoMini lote={foto} />}
+                      <div>
+                        <div className="fw-bold fs-5">{nombreBase(b)}</div>
+                        <div className="small">{cuelloBase(b)} · quedan <b>{n}</b></div>
+                      </div>
                     </div>
-                  </div>
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div></div>
+
+        <div className="card border-0 shadow-sm mb-3"><div className="card-body p-4">
+          <div className="fs-5 fw-bold mb-3">2. ¿Qué color?</div>
+          <div className="d-flex flex-wrap gap-2">
+            {coloresDe(base).map((c) => {
+              const n = prods.filter((x) => x.base === base && x.color === c).reduce((s, x) => s + x.quedan, 0)
+              return (
+                <button key={c} className={'btn btn-outline-secondary opcion d-flex align-items-center gap-2 px-3 py-2 ' + (c === color ? 'active' : '')} onClick={() => elegirColor(c)}>
+                  <Muestra color={c} tam="1.8rem" />
+                  <span className="text-start"><span className="d-block fw-bold text-capitalize">{c}</span><span className="d-block small">quedan {n}</span></span>
                 </button>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div></div>
 
         <div className="card border-0 shadow-sm mb-3"><div className="card-body p-4">
           <div className="row g-4">
             <div className="col-md-7">
-              <div className="fs-5 fw-bold mb-3">2. ¿Qué talla?</div>
+              <div className="fs-5 fw-bold mb-3">3. ¿Qué talla?</div>
               <div className="d-flex flex-wrap gap-2">
-                {TALLAS.map((t) => (
-                  <button key={t} className={'btn btn-lg btn-outline-secondary opcion px-4 ' + (t === talla ? 'active' : '')} onClick={() => elegirTalla(t)}>{t}</button>
-                ))}
+                {TALLAS.map((t) => {
+                  const pt = productoDe(t)
+                  const n = pt ? pt.quedan : 0
+                  return (
+                    <button key={t} disabled={!n} className={'btn btn-lg btn-outline-secondary opcion px-3 ' + (t === talla ? 'active' : '')} onClick={() => elegirTalla(t)}>
+                      <span className="d-block">{t}</span>
+                      <span className="d-block small">{n ? `quedan ${n}` : 'no hay'}</span>
+                    </button>
+                  )
+                })}
               </div>
             </div>
             <div className="col-md-5">
-              <div className="fs-5 fw-bold mb-3">3. ¿Cuántos?</div>
+              <div className="fs-5 fw-bold mb-3">4. ¿Cuántos?</div>
               <div className="input-group input-group-lg">
                 <button className="btn btn-outline-secondary px-4 fw-bold" onClick={() => setCantidad(Math.max(1, cantidad - 1))}>−</button>
                 <input id="cantidad" className="form-control text-center fw-bold fs-3" inputMode="numeric" value={cantidad}
@@ -103,7 +155,7 @@ export default function Vendi({ datos, guardar, ir }) {
         <div className="card border-0 shadow-sm"><div className="card-body p-4">
           <div className="row g-4">
             <div className="col-md-6">
-              <label htmlFor="precio" className="fs-5 fw-bold mb-2">4. ¿A cuánto cada uno?</label>
+              <label htmlFor="precio" className="fs-5 fw-bold mb-2">5. ¿A cuánto cada uno?</label>
               <div className="input-group input-group-lg">
                 <span className="input-group-text">S/</span>
                 <input id="precio" className="form-control fs-4" inputMode="decimal" placeholder="0.00" value={precio} onChange={(e) => setPrecio(e.target.value)} />
@@ -111,7 +163,7 @@ export default function Vendi({ datos, guardar, ir }) {
               <div className="form-text">Por mayor: M y Estándar S/ 14 · L S/ 16. Si vendiste a otro precio, cámbialo.</div>
             </div>
             <div className="col-md-6">
-              <div className="fs-5 fw-bold mb-2">5. ¿Ya te pagaron?</div>
+              <div className="fs-5 fw-bold mb-2">6. ¿Ya te pagaron?</div>
               <div className="d-flex gap-2">
                 <button className={'btn btn-lg btn-outline-secondary opcion flex-fill ' + (pagado ? 'active' : '')} onClick={() => setPagado(true)}>Sí, ya me pagó</button>
                 <button className={'btn btn-lg btn-outline-danger flex-fill ' + (!pagado ? 'active' : '')} onClick={() => setPagado(false)}>Me debe</button>
@@ -133,7 +185,9 @@ export default function Vendi({ datos, guardar, ir }) {
         <div className="card border-0 shadow sticky-top" style={{ top: '1rem' }}>
           <div className="card-body p-4">
             <div className="fw-bold text-secondary">Esta venta</div>
-            <div className="fs-5 mb-3 d-flex align-items-center gap-2">{sel ? <><Muestra color={sel.lote.color} />{`${cantidad} × ${nombreLote(sel.lote)} (${talla})`}</> : '—'}</div>
+            <div className="fs-5 mb-3 d-flex align-items-center gap-2">
+              {sel ? <><Muestra color={color} />{`${cantidad} × ${sel.nombre} ${color} (${talla})`}</> : '—'}
+            </div>
             <div className="d-flex justify-content-between fs-5"><span>Total</span><b>{soles(total)}</b></div>
             {ganancia !== null && (ganancia >= 0 ? (
               <div className="d-flex justify-content-between fs-5 text-success"><span>Ganas</span><b>{soles(ganancia)}</b></div>

@@ -12,6 +12,7 @@ const TABLAS = {
       ['enviados', 'Polos enviados'], ['recibidos', 'Polos recibidos'], ['tela', 'Tela S/'], ['corte', 'Corte S/'],
       ['confeccion', 'Confección por polo S/'], ['etiquetas', 'Etiquetas y bolsas S/'], ['otros', 'Pasajes y otros S/'], ['fotos', 'Fotos (ids en Drive)'],
       ['rollos', 'Rollos'], ['kilos', 'Kilos de tela'], ['precioKilo', 'Precio por kilo S/'],
+      ['disenoId', 'Diseño (id)'], ['enviadosT', 'Enviados por talla'], ['recibidosT', 'Recibidos por talla'],
     ],
   },
   ventas: {
@@ -19,7 +20,12 @@ const TABLAS = {
     cols: [
       ['id', 'ID'], ['fecha', 'Fecha'], ['loteId', 'N° lote'], ['talla', 'Talla'], ['cantidad', 'Cantidad'],
       ['precio', 'Precio por polo S/'], ['pagado', '¿Ya pagó?'], ['cliente', 'Cliente / nota'],
+      ['disenoId', 'Diseño (id)'], ['color', 'Color'],
     ],
+  },
+  disenos: {
+    hoja: 'Diseños',
+    cols: [['id', 'ID'], ['nombre', 'Nombre del diseño'], ['cuello', 'Cuello']],
   },
   gastos: {
     hoja: 'Gastos',
@@ -89,7 +95,7 @@ function leer_(tipo) {
 
 function getData() {
   prepararHojas_();
-  return { lotes: leer_('lotes'), ventas: leer_('ventas'), gastos: leer_('gastos') };
+  return { lotes: leer_('lotes'), ventas: leer_('ventas'), gastos: leer_('gastos'), disenos: leer_('disenos') };
 }
 
 function aFila_(tipo, obj) {
