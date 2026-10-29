@@ -17,14 +17,14 @@ const EJEMPLO = {
   lotes: [
     { id: 1, fecha: '2026-10-03', modelo: 'Cuello redondo', color: 'negro', paso: 5, enviados: 100, recibidos: 98, tela: 380, corte: 50, confeccion: 3.5, etiquetas: 40, otros: 20 },
     { id: 2, fecha: '2026-10-08', modelo: 'Cuello V', color: 'gris', paso: 5, enviados: 50, recibidos: 50, tela: 220, corte: 30, confeccion: 3.8, etiquetas: 20, otros: 10 },
-    { id: 3, fecha: '2026-10-17', modelo: 'Oversize', color: 'blanco', paso: 3, enviados: 60, recibidos: 0, tela: 300, corte: 30, confeccion: 4.5, etiquetas: 0, otros: 0 },
+    { id: 3, fecha: '2026-10-17', modelo: 'Cuello redondo', color: 'blanco', paso: 3, enviados: 60, recibidos: 0, tela: 300, corte: 30, confeccion: 4.5, etiquetas: 0, otros: 0 },
   ],
   ventas: [
-    { id: 'v1', fecha: '2026-10-10', loteId: 1, talla: 'M', cantidad: 12, precio: 13, pagado: true, cliente: '' },
-    { id: 'v2', fecha: '2026-10-12', loteId: 1, talla: 'L', cantidad: 3, precio: 18, pagado: true, cliente: '' },
-    { id: 'v3', fecha: '2026-10-15', loteId: 1, talla: 'S', cantidad: 24, precio: 12.5, pagado: false, cliente: 'Sra. Rosa (mayorista)' },
-    { id: 'v4', fecha: '2026-10-20', loteId: 1, talla: 'XL', cantidad: 2, precio: 18, pagado: true, cliente: '' },
-    { id: 'v5', fecha: '2026-10-24', loteId: 2, talla: 'M', cantidad: 10, precio: 16, pagado: true, cliente: '' },
+    { id: 'v1', fecha: '2026-10-10', loteId: 1, talla: 'M', cantidad: 12, precio: 14, pagado: true, cliente: '' },
+    { id: 'v2', fecha: '2026-10-12', loteId: 1, talla: 'L', cantidad: 3, precio: 16, pagado: true, cliente: '' },
+    { id: 'v3', fecha: '2026-10-15', loteId: 1, talla: 'Estándar', cantidad: 24, precio: 14, pagado: false, cliente: 'Sra. Rosa (mayorista)' },
+    { id: 'v4', fecha: '2026-10-20', loteId: 1, talla: 'L', cantidad: 2, precio: 16, pagado: true, cliente: '' },
+    { id: 'v5', fecha: '2026-10-24', loteId: 2, talla: 'M', cantidad: 10, precio: 14, pagado: true, cliente: '' },
   ],
   gastos: [
     { id: 'g1', fecha: '2026-10-05', concepto: 'Pasajes a la feria', categoria: 'Pasajes', monto: 24 },
@@ -67,12 +67,49 @@ const demo = {
     d[tipo] = d[tipo].filter((x) => String(x.id) !== String(id))
     return { datos: escribirDemo(d) }
   },
+  // Fotos: en modo de prueba se guardan en el navegador (caben pocas)
+  async subirFoto(dataUrl) {
+    await esperar(300)
+    const fotos = leerFotosDemo()
+    const id = 'f' + Math.random().toString(36).slice(2, 10)
+    fotos[id] = dataUrl
+    try { localStorage.setItem(CLAVE_FOTOS, JSON.stringify(fotos)) } catch (e) {
+      throw new Error('Ya no caben más fotos en el modo de prueba.')
+    }
+    return id
+  },
+  async verFoto(id) { return leerFotosDemo()[id] || null },
+  async borrarFoto(id) {
+    const fotos = leerFotosDemo()
+    delete fotos[id]
+    try { localStorage.setItem(CLAVE_FOTOS, JSON.stringify(fotos)) } catch (e) {}
+  },
+}
+
+const CLAVE_FOTOS = 'polos-de-mama-demo-fotos'
+function leerFotosDemo() {
+  try { return JSON.parse(localStorage.getItem(CLAVE_FOTOS)) || {} } catch (e) { return {} }
 }
 
 export const modoPrueba = !enAppsScript
+
+// Las fotos ya vistas se guardan en memoria para no pedirlas otra vez
+const fotosVistas = new Map()
 
 export const api = {
   getData: () => (enAppsScript ? llamar('getData') : demo.getData()),
   guardar: (tipo, obj) => (enAppsScript ? llamar('guardar', tipo, obj) : demo.guardar(tipo, obj)),
   borrar: (tipo, id) => (enAppsScript ? llamar('borrar', tipo, id) : demo.borrar(tipo, id)),
+  subirFoto: (dataUrl) => (enAppsScript ? llamar('subirFoto', dataUrl) : demo.subirFoto(dataUrl)),
+  verFoto: (id) => {
+    if (!fotosVistas.has(id)) {
+      const p = (enAppsScript ? llamar('verFoto', id) : demo.verFoto(id)).catch(() => null)
+      fotosVistas.set(id, p)
+    }
+    return fotosVistas.get(id)
+  },
+  borrarFoto: (id) => {
+    fotosVistas.delete(id)
+    return enAppsScript ? llamar('borrarFoto', id) : demo.borrarFoto(id)
+  },
 }

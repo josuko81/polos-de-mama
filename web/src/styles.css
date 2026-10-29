@@ -16,5 +16,11 @@ body { background: #eef3f1; }
 .aviso { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 1080; min-width: 320px; }
 .cursor-pointer { cursor: pointer; }
 h1, h2 { color: var(--marca); }
+.muestra { display: inline-block; flex: 0 0 auto; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .25); vertical-align: middle; }
+.opcion-color { width: 6.2rem; }
+.foto { display: block; object-fit: cover; border-radius: .75rem; background: #dfe6e3; }
+.foto-cargando { animation: parpadeo 1.2s ease-in-out infinite; }
+@keyframes parpadeo { 50% { opacity: .5; } }
+.foto-grande { position: fixed; inset: 0; z-index: 1090; background: rgba(0, 0, 0, .8); display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .text-secondary { color: #5b6b65 !important; }
 .form-text { color: #5b6b65; }

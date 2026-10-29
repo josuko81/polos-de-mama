@@ -8,7 +8,40 @@ export const PASOS = [
   { n: 5, titulo: 'Etiquetado y listo', estado: 'Listo para vender' },
 ]
 
-export const TALLAS = ['S', 'M', 'L', 'XL', 'XXL']
+export const TALLAS = ['M', 'Estándar', 'L']
+// Precio por mayor según la talla (se puede cambiar al anotar la venta)
+export const PRECIOS = { M: 14, 'Estándar': 14, L: 16 }
+
+export const MODELOS = ['Cuello redondo', 'Cuello V']
+
+// Colores con su muestra, para reconocerlos de un vistazo
+export const COLORES = [
+  { nombre: 'negro', hex: '#1c1c1c' },
+  { nombre: 'blanco', hex: '#ffffff' },
+  { nombre: 'gris', hex: '#9aa0a6' },
+  { nombre: 'plomo', hex: '#5f6368' },
+  { nombre: 'azul marino', hex: '#1f2a52' },
+  { nombre: 'azul', hex: '#2f6fd6' },
+  { nombre: 'celeste', hex: '#8ecdf2' },
+  { nombre: 'rojo', hex: '#d32f2f' },
+  { nombre: 'guinda', hex: '#7b1e34' },
+  { nombre: 'rosado', hex: '#f4a6c0' },
+  { nombre: 'amarillo', hex: '#f7d23e' },
+  { nombre: 'mostaza', hex: '#c99a2e' },
+  { nombre: 'naranja', hex: '#f57c00' },
+  { nombre: 'verde', hex: '#2e7d32' },
+  { nombre: 'verde agua', hex: '#6cc5b0' },
+  { nombre: 'lila', hex: '#b39ddb' },
+  { nombre: 'morado', hex: '#6a1b9a' },
+  { nombre: 'beige', hex: '#e8d8b8' },
+  { nombre: 'marrón', hex: '#6d4c41' },
+]
+
+// Color de muestra para un nombre (null si es un color escrito a mano)
+export const colorHex = (nombre) => {
+  const c = COLORES.find((x) => x.nombre === String(nombre || '').trim().toLowerCase())
+  return c ? c.hex : null
+}
 export const CATEGORIAS = ['Pasajes', 'Luz y agua', 'Internet y celular', 'Publicidad', 'Alquiler / puesto', 'Bolsas y etiquetas', 'Otros']
 export const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
 
@@ -43,6 +76,9 @@ export const vendidosDeLote = (loteId, ventas) =>
 export const stockDeLote = (l, ventas) => (num(l.paso) >= 4 ? num(l.recibidos) - vendidosDeLote(l.id, ventas) : 0)
 
 export const nombreLote = (l) => [l.modelo, l.color].filter(Boolean).join(' ')
+
+// Las fotos del lote se guardan como ids separados por comas
+export const fotosDe = (l) => String((l && l.fotos) || '').split(',').map((x) => x.trim()).filter(Boolean)
 
 export const totalVenta = (v) => num(v.cantidad) * num(v.precio)
 

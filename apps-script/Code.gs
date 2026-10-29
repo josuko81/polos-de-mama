@@ -10,7 +10,7 @@ const TABLAS = {
     cols: [
       ['id', 'N° lote'], ['fecha', 'Fecha'], ['modelo', 'Modelo'], ['color', 'Color'], ['paso', 'Paso (1-5)'],
       ['enviados', 'Polos enviados'], ['recibidos', 'Polos recibidos'], ['tela', 'Tela S/'], ['corte', 'Corte S/'],
-      ['confeccion', 'Confección por polo S/'], ['etiquetas', 'Etiquetas y bolsas S/'], ['otros', 'Pasajes y otros S/'],
+      ['confeccion', 'Confección por polo S/'], ['etiquetas', 'Etiquetas y bolsas S/'], ['otros', 'Pasajes y otros S/'], ['fotos', 'Fotos (ids en Drive)'],
     ],
   },
   ventas: {
@@ -47,6 +47,12 @@ function prepararHojas_() {
       sh.appendRow(t.cols.map(function (c) { return c[1]; }));
       sh.getRange(1, 1, 1, t.cols.length).setFontWeight('bold').setBackground('#1f5f5b').setFontColor('#ffffff');
       sh.setFrozenRows(1);
+    } else if (sh.getLastColumn() < t.cols.length) {
+      // Columnas nuevas en una hoja que ya tenía datos: solo se agrega el encabezado
+      const desde = sh.getLastColumn() + 1;
+      const nuevas = t.cols.slice(desde - 1).map(function (c) { return c[1]; });
+      sh.getRange(1, desde, 1, nuevas.length).setValues([nuevas])
+        .setFontWeight('bold').setBackground('#1f5f5b').setFontColor('#ffffff');
     }
   });
 }
@@ -121,6 +127,42 @@ function guardar(tipo, obj) {
   } finally {
     lock.releaseLock();
   }
+}
+
+/** Carpeta de Drive donde se guardan las fotos (se crea la primera vez). */
+function carpetaFotos_() {
+  const nombre = 'Polos de Mamá - Fotos';
+  const it = DriveApp.getFoldersByName(nombre);
+  return it.hasNext() ? it.next() : DriveApp.createFolder(nombre);
+}
+
+/** Recibe la foto ya achicada (data URL JPG) y devuelve su id en Drive. */
+function subirFoto(dataUrl) {
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(String(dataUrl));
+  if (!m) throw new Error('Formato de foto no válido');
+  const nombre = 'polo-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss') + '.jpg';
+  const blob = Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], nombre);
+  return carpetaFotos_().createFile(blob).getId();
+}
+
+/** Solo deja tocar archivos que estén en la carpeta de fotos, no cualquier archivo del Drive. */
+function fotoDeLaCarpeta_(id) {
+  const archivo = DriveApp.getFileById(id);
+  const carpeta = carpetaFotos_().getId();
+  const padres = archivo.getParents();
+  while (padres.hasNext()) if (padres.next().getId() === carpeta) return archivo;
+  throw new Error('Esa foto no es del sistema');
+}
+
+/** Devuelve la foto como data URL para mostrarla (las fotos siguen siendo privadas en Drive). */
+function verFoto(id) {
+  const blob = fotoDeLaCarpeta_(id).getBlob();
+  return 'data:' + blob.getContentType() + ';base64,' + Utilities.base64Encode(blob.getBytes());
+}
+
+/** Manda la foto a la papelera de Drive (se puede recuperar desde ahí). */
+function borrarFoto(id) {
+  fotoDeLaCarpeta_(id).setTrashed(true);
 }
 
 function borrar(tipo, id) {

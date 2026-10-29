@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react'
-import { PASOS, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, vendidosDeLote, soles, hoy, fechaCorta } from '../calc.js'
+import { PASOS, MODELOS, COLORES, colorHex, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, vendidosDeLote, soles, hoy, fechaCorta } from '../calc.js'
 import BotonBorrar from './BotonBorrar.jsx'
+import Muestra from './Muestra.jsx'
+import Fotos from './Fotos.jsx'
 
 // Qué se pregunta en cada paso
 const CAMPOS = {
   1: [
-    { k: 'modelo', label: 'Modelo del polo', tipo: 'texto', ph: 'Ej: Cuello redondo' },
-    { k: 'color', label: 'Color', tipo: 'texto', ph: 'Ej: negro' },
+    { k: 'modelo', label: 'Modelo del polo', tipo: 'modelo' },
+    { k: 'color', label: 'Color', tipo: 'color' },
     { k: 'tela', label: '¿Cuánto pagaste por la tela?', tipo: 'soles' },
     { k: 'fecha', label: 'Fecha de compra', tipo: 'fecha' },
   ],
@@ -51,8 +53,10 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
       if (c.tipo === 'soles' || c.tipo === 'numero') {
         v = Number(String(v === undefined ? '' : v).replace(',', '.'))
         if (String(form[c.k] ?? '').trim() === '' || isNaN(v)) return setError(`Falta: ${c.label}`)
-      } else if (c.tipo === 'texto' && c.k === 'modelo' && !String(v || '').trim()) {
-        return setError('Escribe el modelo del polo.')
+      } else if (c.tipo === 'modelo' && !String(v || '').trim()) {
+        return setError('Elige el modelo del polo.')
+      } else if (c.tipo === 'color' && !String(v || '').trim()) {
+        return setError('Elige el color del polo.')
       }
       datosPaso[c.k] = typeof v === 'string' ? v.trim() : v
     }
@@ -81,7 +85,7 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
       <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('lotes')}>← Mis lotes</button>
       <div className="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-4">
         <div>
-          <h1 className="fw-bold mb-1">🧵 {esNuevo ? 'Nuevo lote' : `Lote ${lote.id} · ${nombreLote(lote)}`}</h1>
+          <h1 className="fw-bold mb-1 d-flex align-items-center gap-2">🧵 {esNuevo ? 'Nuevo lote' : <>Lote {lote.id} · {nombreLote(lote)} <Muestra color={lote.color} tam="1.8rem" /></>}</h1>
           {!esNuevo && <p className="fs-5 text-secondary mb-0">Empezó el {fechaCorta(lote.fecha)}{lote.enviados ? ` · ${lote.enviados} polos` : ''}</p>}
         </div>
       </div>
@@ -123,9 +127,33 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
             <h2 className="fw-bold mb-4">{PASOS[elegido - 1].titulo}</h2>
             <div className="row g-3">
               {CAMPOS[elegido].map((c) => (
-                <div className={CAMPOS[elegido].length > 1 ? 'col-md-6' : 'col-md-8'} key={c.k}>
+                <div className={c.tipo === 'color' || c.tipo === 'modelo' ? 'col-12' : CAMPOS[elegido].length > 1 ? 'col-md-6' : 'col-md-8'} key={c.k}>
                   <label htmlFor={'f-' + c.k} className="fs-5 fw-bold mb-2">{c.label}</label>
-                  {c.tipo === 'soles' ? (
+                  {c.tipo === 'modelo' ? (
+                    <div className="d-flex flex-wrap gap-2">
+                      {MODELOS.map((m) => (
+                        <button key={m} type="button" className={'btn btn-lg btn-outline-secondary opcion flex-fill py-3 ' + (form.modelo === m ? 'active' : '')}
+                          onClick={() => setForm({ ...form, modelo: m })}>
+                          <span className="fs-3 me-2">{m === 'Cuello V' ? 'Ⅴ' : '◯'}</span>{m}
+                        </button>
+                      ))}
+                    </div>
+                  ) : c.tipo === 'color' ? (
+                    <>
+                      <div className="d-flex flex-wrap gap-2">
+                        {COLORES.map((col) => (
+                          <button key={col.nombre} type="button" title={col.nombre}
+                            className={'btn btn-outline-secondary opcion opcion-color d-flex flex-column align-items-center gap-1 p-2 ' + (String(form.color || '').toLowerCase() === col.nombre ? 'active' : '')}
+                            onClick={() => setForm({ ...form, color: col.nombre })}>
+                            <Muestra color={col.nombre} tam="2.4rem" />
+                            <span className="small">{col.nombre}</span>
+                          </button>
+                        ))}
+                      </div>
+                      <input id={'f-' + c.k} className="form-control mt-3" placeholder="¿Otro color? Escríbelo aquí"
+                        value={colorHex(form.color) ? '' : form.color ?? ''} onChange={(e) => setForm({ ...form, color: e.target.value })} />
+                    </>
+                  ) : c.tipo === 'soles' ? (
                     <div className="input-group input-group-lg">
                       <span className="input-group-text">S/</span>
                       <input id={'f-' + c.k} className="form-control fs-4" inputMode="decimal" placeholder="0.00"
@@ -160,6 +188,8 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
             </div>
             {paso >= 5 && !editando && <div className="alert alert-success mt-4 mb-0 fs-5">Este lote está listo para vender 🎉</div>}
           </div></div>
+
+          {!esNuevo && <Fotos lote={lote} guardar={guardar} />}
         </div>
       </div>
     </>

@@ -1,5 +1,7 @@
 import React from 'react'
 import { PASOS, estadoLote, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, soles, fechaCorta } from '../calc.js'
+import Muestra from './Muestra.jsx'
+import { FotoMini } from './Fotos.jsx'
 
 export default function Lotes({ datos, ir }) {
   const lotes = [...datos.lotes].sort((a, b) => Number(b.id) - Number(a.id))
@@ -30,9 +32,12 @@ export default function Lotes({ datos, ir }) {
               <div className="card border-0 shadow-sm h-100 cursor-pointer" onClick={() => ir('lote', l.id)}>
                 <div className="card-body p-4">
                   <div className="d-flex justify-content-between align-items-start mb-2">
-                    <div>
-                      <div className="small text-secondary">Lote {l.id} · {fechaCorta(l.fecha)}</div>
-                      <div className="fs-4 fw-bold">{nombreLote(l)}</div>
+                    <div className="d-flex align-items-center gap-3">
+                      <FotoMini lote={l} />
+                      <div>
+                        <div className="small text-secondary">Lote {l.id} · {fechaCorta(l.fecha)}</div>
+                        <div className="fs-4 fw-bold d-flex align-items-center gap-2"><Muestra color={l.color} />{nombreLote(l)}</div>
+                      </div>
                     </div>
                     <span className={`badge text-bg-${color(paso)} fs-6`}>{estadoLote(l)}</span>
                   </div>
