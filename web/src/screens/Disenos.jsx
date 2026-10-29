@@ -3,7 +3,7 @@ import { TALLAS, productos, etapaDe, sumaTallas, fotosDe } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import NuevoDiseno from './NuevoDiseno.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
-import { FotoMini } from './Fotos.jsx'
+import Fotos, { FotoMini } from './Fotos.jsx'
 
 // Catálogo de diseños: cada uno guarda sus colores y tallas, sumando el stock de todos sus lotes
 export default function Disenos({ datos, guardar, borrar, ir }) {
@@ -41,7 +41,8 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
           const total = suyos.reduce((s, p) => s + p.quedan, 0)
           const lotes = datos.lotes.filter((l) => String(l.disenoId) === String(d.id))
           const enTaller = lotes.filter((l) => etapaDe(l) === 2).reduce((s, l) => s + (sumaTallas(l.enviadosT) || Number(l.enviados) || 0), 0)
-          const conFoto = lotes.find((l) => fotosDe(l).length)
+          const empaquetando = lotes.filter((l) => etapaDe(l) === 3).reduce((s, l) => s + (sumaTallas(l.recibidosT) || Number(l.recibidos) || 0), 0)
+          const conFoto = fotosDe(d).length ? d : lotes.find((l) => fotosDe(l).length)
           const celda = (color, talla) => suyos.filter((p) => p.color === color && p.talla === talla).reduce((s, p) => s + p.quedan, 0)
           return (
             <div className="col-lg-6" key={d.id}>
@@ -50,10 +51,16 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
                   <NuevoDiseno datos={datos} guardar={guardar} diseno={d} onListo={() => setEditando(null)} onCancelar={() => setEditando(null)} />
                 ) : (
                   <div className="d-flex align-items-center gap-3 mb-3">
-                    {conFoto && <FotoMini lote={conFoto} />}
+                    {conFoto && <FotoMini de={conFoto} tam="5rem" />}
                     <div className="flex-grow-1">
                       <div className="fs-3 fw-bold text-marca">{d.nombre}</div>
-                      <div className="text-secondary">{d.cuello} · {total} en stock{enTaller > 0 && ` · ${enTaller} en el taller`}</div>
+                      <div className="mb-1">
+                        <span className={'badge me-1 ' + (d.tipo === 'Con estampado' ? 'text-bg-warning' : 'text-bg-light border')}>{d.tipo === 'Con estampado' ? '🎨 Con estampado' : '⬜ Liso'}</span>
+                        <span className="badge text-bg-light border">{d.cuello}</span>
+                      </div>
+                      <div className="text-secondary">
+                        {total} en stock{enTaller > 0 && ` · ${enTaller} en el taller`}{empaquetando > 0 && ` · ${empaquetando} empaquetando`}
+                      </div>
                     </div>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => setEditando(d.id)}>Editar</button>
                     {lotes.length === 0 && <BotonBorrar onConfirmar={() => borrar('disenos', d.id, 'Diseño borrado')} />}
@@ -76,6 +83,8 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
                     </tbody>
                   </table>
                 )}
+
+                <Fotos registro={d} tipo="disenos" titulo={d.tipo === 'Con estampado' ? 'Fotos del estampado' : 'Fotos del diseño'} guardar={guardar} sinTarjeta />
               </div></div>
             </div>
           )

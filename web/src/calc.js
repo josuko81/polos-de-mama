@@ -5,13 +5,16 @@
 export const PASOS = [
   { n: 1, titulo: 'Compré la tela', estado: 'Tela comprada', icono: '🧶', color: 'info', valor: 1 },
   { n: 2, titulo: 'Corté y mandé al taller', estado: 'En el taller', icono: '✂️', color: 'warning', valor: 3 },
-  { n: 3, titulo: 'Recogí del taller', estado: 'Listo para vender', icono: '✅', color: 'success', valor: 5 },
+  { n: 3, titulo: 'Recogí del taller', estado: 'Empaquetando', icono: '🧼', color: 'primary', valor: 4 },
+  { n: 4, titulo: 'Limpié y empaqueté', estado: 'Listo para vender', icono: '✅', color: 'success', valor: 5 },
 ]
+// Etapa desde la que los polos se pueden vender
+export const LISTO = PASOS.length
 
-// Etapa (0 a 3) según el paso guardado: 1-2 → tela comprada, 3 → en el taller, 4-5 → listo
+// Etapa (0 a 4) según el paso guardado: 1-2 → tela comprada, 3 → en el taller, 4 → empaquetando, 5 → listo
 export const etapaDe = (l) => {
   const p = Number(l && l.paso) || 0
-  return p >= 4 ? 3 : p >= 3 ? 2 : p >= 1 ? 1 : 0
+  return p >= 5 ? 4 : p >= 4 ? 3 : p >= 3 ? 2 : p >= 1 ? 1 : 0
 }
 
 export const TALLAS = ['M', 'Estándar', 'L']
@@ -19,6 +22,7 @@ export const TALLAS = ['M', 'Estándar', 'L']
 export const PRECIOS = { M: 14, 'Estándar': 14, L: 16 }
 
 export const MODELOS = ['Cuello redondo', 'Cuello V']
+export const TIPOS_DISENO = ['Liso', 'Con estampado']
 
 // Colores con su muestra, para reconocerlos de un vistazo
 export const COLORES = [
@@ -116,7 +120,7 @@ const colorNorm = (c) => String(c || '').trim().toLowerCase()
 
 // Polos que entraron a stock de un lote, por talla. Los lotes antiguos sin tallas usan '' (sin talla).
 const unidadesLote = (l) => {
-  if (etapaDe(l) < 3) return {}
+  if (etapaDe(l) < LISTO) return {}
   const t = leerTallas(l.recibidosT)
   return Object.keys(t).length ? t : { '': num(l.recibidos) }
 }
@@ -125,7 +129,7 @@ const cacheInventario = new WeakMap()
 export function inventario(datos) {
   if (cacheInventario.has(datos)) return cacheInventario.get(datos)
   const orden = (a, b) => (String(a.fecha) < String(b.fecha) ? -1 : String(a.fecha) > String(b.fecha) ? 1 : num(a.id) - num(b.id))
-  const lotes = datos.lotes.filter((l) => etapaDe(l) >= 3).sort(orden)
+  const lotes = datos.lotes.filter((l) => etapaDe(l) >= LISTO).sort(orden)
   const restante = {}
   lotes.forEach((l) => { restante[l.id] = { ...unidadesLote(l) } })
   const costoVentas = new Map()
@@ -170,7 +174,7 @@ export const stockDeLote = (l, datos) => {
   return r ? Object.values(r).reduce((s, n) => s + Math.max(0, n), 0) : 0
 }
 export const stockPorTallaDeLote = (l, datos) => inventario(datos).restante[l.id] || {}
-export const vendidosDeLote = (l, datos) => (etapaDe(l) >= 3 ? num(l.recibidos) - stockDeLote(l, datos) : 0)
+export const vendidosDeLote = (l, datos) => (etapaDe(l) >= LISTO ? num(l.recibidos) - stockDeLote(l, datos) : 0)
 
 // Productos con stock (diseño + color + talla), sumando todos sus lotes, del más antiguo al más nuevo
 export function productos(datos) {

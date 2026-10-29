@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { resumenMes, porCobrar, productos, soles, totalVenta, hoy, mesDe, MESES, nombreLote, nombreVenta, fechaCorta, etapaDe, TALLAS } from '../calc.js'
+import { resumenMes, porCobrar, productos, soles, totalVenta, hoy, mesDe, MESES, nombreLote, nombreVenta, fechaCorta, etapaDe, LISTO, TALLAS } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 
@@ -18,7 +18,7 @@ export default function Resumen({ datos, guardar, borrar }) {
   // Stock sumado por diseño + color + talla, ordenado para leerlo fácil
   const orden = (t) => (TALLAS.indexOf(t) < 0 ? 99 : TALLAS.indexOf(t))
   const stock = productos(datos).sort((a, b) => a.nombre.localeCompare(b.nombre) || a.color.localeCompare(b.color) || orden(a.talla) - orden(b.talla))
-  const enTaller = datos.lotes.filter((l) => etapaDe(l) > 0 && etapaDe(l) < 3)
+  const enTaller = datos.lotes.filter((l) => etapaDe(l) > 0 && etapaDe(l) < LISTO)
   const titulo = `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}`
 
   const historial = [
@@ -97,7 +97,9 @@ export default function Resumen({ datos, guardar, borrar }) {
                 {enTaller.map((l) => (
                   <tr key={'t' + l.id}>
                     <td>{nombreLote(l)} <span className="small text-secondary">· lote {l.id}</span></td>
-                    <td className="text-end"><span className="badge text-bg-warning">en camino ({l.enviados || '?'})</span></td>
+                    <td className="text-end">{etapaDe(l) === 3
+                      ? <span className="badge text-bg-primary">empaquetando ({l.recibidos || '?'})</span>
+                      : <span className="badge text-bg-warning">en camino ({l.enviados || '?'})</span>}</td>
                   </tr>
                 ))}
               </tbody>

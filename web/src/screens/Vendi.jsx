@@ -73,9 +73,12 @@ export default function Vendi({ datos, guardar, ir }) {
     )
   }
 
-  const fotoDe = (b, c) => {
-    const x = prods.filter((q) => q.base === b && (!c || q.color === c)).flatMap((q) => q.lotes.map((y) => y.lote)).find((l) => fotosDe(l).length)
-    return x || null
+  // Foto para mostrar: la del diseño (p. ej. su estampado) y si no tiene, la de algún lote
+  const fotoDe = (b) => {
+    const grupo = prods.filter((q) => q.base === b)
+    const d = grupo[0] && grupo[0].disenoId ? disenoPorId(grupo[0].disenoId) : null
+    if (d && fotosDe(d).length) return d
+    return grupo.flatMap((q) => q.lotes.map((y) => y.lote)).find((l) => fotosDe(l).length) || null
   }
   const nombreBase = (b) => (b.disenoId ? `${b.nombre}` : b.nombre)
   const cuelloBase = (b) => (b.disenoId ? (disenoPorId(b.disenoId) || {}).cuello : 'Sin diseño')
@@ -95,7 +98,7 @@ export default function Vendi({ datos, guardar, ir }) {
                 <div className="col-md-6" key={b.base}>
                   <button className={'btn btn-outline-secondary opcion w-100 text-start p-3 ' + (b.base === base ? 'active' : '')} onClick={() => elegirBase(b.base)}>
                     <div className="d-flex align-items-center gap-3">
-                      {foto && <FotoMini lote={foto} />}
+                      {foto && <FotoMini de={foto} />}
                       <div>
                         <div className="fw-bold fs-5">{nombreBase(b)}</div>
                         <div className="small">{cuelloBase(b)} · quedan <b>{n}</b></div>

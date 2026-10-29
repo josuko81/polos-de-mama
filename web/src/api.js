@@ -15,8 +15,8 @@ const CLAVE = 'polos-de-mama-demo'
 
 const EJEMPLO = {
   disenos: [
-    { id: 'd1', nombre: 'Clásico', cuello: 'Cuello redondo' },
-    { id: 'd2', nombre: 'Básico V', cuello: 'Cuello V' },
+    { id: 'd1', nombre: 'Clásico', cuello: 'Cuello redondo', tipo: 'Liso' },
+    { id: 'd2', nombre: 'Básico V', cuello: 'Cuello V', tipo: 'Liso' },
   ],
   lotes: [
     { id: 1, fecha: '2026-10-03', disenoId: 'd1', modelo: 'Cuello redondo', color: 'negro', paso: 5, rollos: 2, kilos: 19, precioKilo: 20, enviados: 100, recibidos: 98,

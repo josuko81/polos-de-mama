@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { api } from '../api.js'
-import { fotosDe } from '../calc.js'
+import { fotosDe, disenoPorId } from '../calc.js'
 import BotonBorrar from './BotonBorrar.jsx'
 
 // Achica la foto del celular (que pesa varios MB) a un JPG liviano
@@ -34,16 +34,18 @@ export function Foto({ id, className = '', style }) {
   return <img src={src} alt="Foto del polo" className={'foto ' + className} style={style} />
 }
 
-// Primera foto del lote, chiquita, para las listas
-export function FotoMini({ lote, tam = '4rem' }) {
-  const ids = fotosDe(lote)
+// Primera foto, chiquita, para las listas. Un lote sin foto propia muestra la de su diseño.
+export function FotoMini({ lote, de, tam = '4rem' }) {
+  const r = de || lote
+  let ids = fotosDe(r)
+  if (!ids.length && r && r.disenoId) ids = fotosDe(disenoPorId(r.disenoId))
   if (!ids.length) return null
   return <Foto id={ids[0]} style={{ width: tam, height: tam }} />
 }
 
-// Sección de fotos dentro del lote
-export default function Fotos({ lote, guardar }) {
-  const ids = fotosDe(lote)
+// Sección de fotos de un lote o de un diseño (`tipo` es la tabla donde se guardan los ids)
+export default function Fotos({ registro, tipo, titulo, guardar, sinTarjeta = false }) {
+  const ids = fotosDe(registro)
   const entrada = useRef(null)
   const [subiendo, setSubiendo] = useState(false)
   const [grande, setGrande] = useState(null)
@@ -58,7 +60,7 @@ export default function Fotos({ lote, guardar }) {
     try {
       const nuevos = []
       for (const a of archivos) nuevos.push(await api.subirFoto(await achicar(a)))
-      await guardar('lotes', { id: lote.id, fotos: [...ids, ...nuevos].join(',') }, nuevos.length > 1 ? 'Fotos guardadas' : 'Foto guardada')
+      await guardar(tipo, { id: registro.id, fotos: [...ids, ...nuevos].join(',') }, nuevos.length > 1 ? 'Fotos guardadas' : 'Foto guardada')
     } catch (err) {
       setError(err && err.message ? err.message : 'No se pudo subir la foto. Revisa el internet y vuelve a intentar.')
     } finally {
@@ -67,25 +69,25 @@ export default function Fotos({ lote, guardar }) {
   }
 
   const quitar = async (id) => {
-    await guardar('lotes', { id: lote.id, fotos: ids.filter((x) => x !== id).join(',') }, 'Foto borrada')
+    await guardar(tipo, { id: registro.id, fotos: ids.filter((x) => x !== id).join(',') }, 'Foto borrada')
     api.borrarFoto(id).catch(() => {})
     setGrande(null)
   }
 
-  return (
-    <div className="card border-0 shadow-sm mt-4"><div className="card-body p-4">
+  const contenido = (
+    <>
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-        <h2 className="fw-bold fs-3 mb-0">📷 Fotos del lote</h2>
-        <button className="btn btn-warning btn-lg fw-bold" disabled={subiendo} onClick={() => entrada.current.click()}>
+        <h2 className={'fw-bold mb-0 ' + (sinTarjeta ? 'fs-5' : 'fs-3')}>📷 {titulo}</h2>
+        <button className={'btn btn-warning fw-bold ' + (sinTarjeta ? '' : 'btn-lg')} disabled={subiendo} onClick={() => entrada.current.click()}>
           {subiendo ? <><span className="spinner-border spinner-border-sm me-2" />Subiendo…</> : '＋ Subir foto'}
         </button>
         <input ref={entrada} type="file" accept="image/*" multiple hidden onChange={subir} />
       </div>
-      {ids.length === 0 && <p className="text-secondary fs-5 mb-0">Sube una foto del polo para reconocerlo fácil al vender.</p>}
+      {ids.length === 0 && <p className="text-secondary mb-0">Sube una foto del polo para reconocerlo fácil al vender.</p>}
       <div className="d-flex flex-wrap gap-3">
         {ids.map((id) => (
           <button key={id} type="button" className="btn p-0 border-0" onClick={() => setGrande(id)}>
-            <Foto id={id} style={{ width: '8rem', height: '8rem' }} />
+            <Foto id={id} style={sinTarjeta ? { width: '6rem', height: '6rem' } : { width: '8rem', height: '8rem' }} />
           </button>
         ))}
       </div>
@@ -102,6 +104,8 @@ export default function Fotos({ lote, guardar }) {
           </div>
         </div>
       )}
-    </div></div>
+    </>
   )
+  if (sinTarjeta) return <div className="border-top pt-3 mt-3">{contenido}</div>
+  return <div className="card border-0 shadow-sm mt-4"><div className="card-body p-4">{contenido}</div></div>
 }

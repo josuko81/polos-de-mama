@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { PASOS, TALLAS, etapaDe, rinde, COLORES, colorHex, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, stockPorTallaDeLote, vendidosDeLote,
+import { PASOS, LISTO, TALLAS, etapaDe, rinde, COLORES, colorHex, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, stockPorTallaDeLote, vendidosDeLote,
   leerTallas, sumaTallas, textoTallas, disenoPorId, soles, hoy, fechaCorta } from '../calc.js'
 import BotonBorrar from './BotonBorrar.jsx'
 import NuevoDiseno from './NuevoDiseno.jsx'
 import Muestra from './Muestra.jsx'
-import Fotos from './Fotos.jsx'
+import Fotos, { FotoMini } from './Fotos.jsx'
 
 // Qué se pregunta en cada paso
 const CAMPOS = {
@@ -24,6 +24,7 @@ const CAMPOS = {
     { k: 'recibidosT', total: 'recibidos', label: '¿Cuántos llegaron buenos de cada talla?', tipo: 'tallas', ayuda: 'Si llegaron menos o algunos con falla, pon solo los buenos.' },
     { k: 'otros', label: 'Pasajes u otros gastos del lote', tipo: 'soles', ayuda: 'Si no hubo, pon 0.' },
   ],
+  4: [], // Limpiar y empaquetar: solo se confirma
 }
 
 // Convierte {M:'40', L:''} del formulario en {M:40}
@@ -32,7 +33,7 @@ const tallasLimpias = (o) => leerTallas(Object.fromEntries(Object.entries(o || {
 export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
   const esNuevo = loteId === 'nuevo'
   const lote = esNuevo ? { paso: 0, fecha: hoy() } : datos.lotes.find((l) => String(l.id) === String(loteId))
-  const paso = etapaDe(lote) // última etapa terminada (0 a 3)
+  const paso = etapaDe(lote) // última etapa terminada (0 a 4)
   const [elegido, setElegido] = useState(Math.min(paso + 1, PASOS.length))
   const [form, setForm] = useState({})
   const [guardando, setGuardando] = useState(false)
@@ -151,8 +152,11 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
               <div className="d-flex justify-content-between"><span>Gastado en el lote</span><b>{soles(costoTotalLote(lote))}</b></div>
               {rinde(lote) !== null && <div className="d-flex justify-content-between"><span>Cada kilo rindió</span><b>{rinde(lote)} polos</b></div>}
               {costoPorPolo(lote) !== null && <div className="d-flex justify-content-between"><span>Cada polo cuesta</span><b>{soles(costoPorPolo(lote))}</b></div>}
-              {paso >= 3 && <div className="d-flex justify-content-between"><span>Vendidos / quedan</span><b>{vendidos} / {stockDeLote(lote, datos)}</b></div>}
-              {paso >= 3 && textoTallas(stockPorTallaDeLote(lote, datos)) && (
+              {paso === 3 && textoTallas(lote.recibidosT) && (
+                <div className="d-flex justify-content-between"><span>Empaquetando</span><b>{textoTallas(lote.recibidosT)}</b></div>
+              )}
+              {paso >= LISTO && <div className="d-flex justify-content-between"><span>Vendidos / quedan</span><b>{vendidos} / {stockDeLote(lote, datos)}</b></div>}
+              {paso >= LISTO && textoTallas(stockPorTallaDeLote(lote, datos)) && (
                 <div className="d-flex justify-content-between"><span>Quedan por talla</span><b>{textoTallas(stockPorTallaDeLote(lote, datos))}</b></div>
               )}
               {paso === 2 && textoTallas(lote.enviadosT) && (
@@ -176,8 +180,13 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
                         {(datos.disenos || []).map((d) => (
                           <button key={d.id} type="button" className={'btn btn-lg btn-outline-secondary opcion text-start ' + (String(form.disenoId) === String(d.id) ? 'active' : '')}
                             onClick={() => setForm((f) => ({ ...f, disenoId: d.id }))}>
-                            <span className="d-block fw-bold">{d.nombre}</span>
-                            <span className="d-block small">{d.cuello}</span>
+                            <span className="d-flex align-items-center gap-2">
+                              <FotoMini de={d} tam="3rem" />
+                              <span>
+                                <span className="d-block fw-bold">{d.nombre}</span>
+                                <span className="d-block small">{d.cuello} · {d.tipo === 'Con estampado' ? '🎨 estampado' : '⬜ liso'}</span>
+                              </span>
+                            </span>
                           </button>
                         ))}
                         {!creandoDiseno && (
@@ -248,19 +257,27 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
             )}
             {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
 
+            {elegido === 4 && (
+              <p className="fs-5 mb-0">
+                {paso >= LISTO
+                  ? <>Este lote ya está limpio y empaquetado. Sus polos aparecen en «Vendí» 🎉</>
+                  : <>Cuando termines de <b>limpiar y empaquetar</b> los {lote.recibidos || ''} polos, toca el botón. Recién ahí aparecerán en «Vendí».</>}
+              </p>
+            )}
             <div className="d-flex flex-wrap gap-3 align-items-center mt-4">
-              <button className="btn btn-marca btn-lg py-3 px-5 fs-4" disabled={guardando} onClick={enviar}>
-                {guardando ? <><span className="spinner-border spinner-border-sm me-2" />Guardando…</>
-                  : esNuevo ? 'Crear lote' : editando ? 'Guardar cambios' : `Listo: ${PASOS[elegido - 1].titulo.toLowerCase()}`}
-              </button>
+              {!(elegido === 4 && editando) && (
+                <button className="btn btn-marca btn-lg py-3 px-5 fs-4" disabled={guardando} onClick={enviar}>
+                  {guardando ? <><span className="spinner-border spinner-border-sm me-2" />Guardando…</>
+                    : esNuevo ? 'Crear lote' : editando ? 'Guardar cambios' : `Listo: ${PASOS[elegido - 1].titulo.toLowerCase()}`}
+                </button>
+              )}
               {!esNuevo && vendidos === 0 && (
                 <BotonBorrar texto="Borrar este lote" onConfirmar={async () => { await borrar('lotes', lote.id, 'Lote borrado'); ir('lotes') }} />
               )}
             </div>
-            {paso >= 3 && !editando && <div className="alert alert-success mt-4 mb-0 fs-5">Este lote está listo para vender 🎉</div>}
           </div></div>
 
-          {!esNuevo && <Fotos lote={lote} guardar={guardar} />}
+          {!esNuevo && <Fotos registro={lote} tipo="lotes" titulo="Fotos del lote" guardar={guardar} />}
         </div>
       </div>
     </>

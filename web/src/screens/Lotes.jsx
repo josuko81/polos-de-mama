@@ -1,17 +1,17 @@
 import React from 'react'
-import { PASOS, etapaDe, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, stockPorTallaDeLote, textoTallas, soles, fechaCorta } from '../calc.js'
+import { PASOS, LISTO, etapaDe, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, stockPorTallaDeLote, textoTallas, soles, fechaCorta } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import { FotoMini } from './Fotos.jsx'
 
 // Columnas del tablero: una por etapa, más los lotes ya vendidos por completo
 const COLUMNAS = [
   ...PASOS.map((p) => ({ id: p.n, titulo: p.estado, icono: p.icono, color: p.color })),
-  { id: 'agotado', titulo: 'Vendido todo', icono: '📦', color: 'dark' },
+  { id: 'agotado', titulo: 'Vendido todo', icono: '🏁', color: 'dark' },
 ]
 
 const columnaDe = (l, datos) => {
   const e = etapaDe(l) || 1
-  return e >= 3 && stockDeLote(l, datos) <= 0 ? 'agotado' : e
+  return e >= LISTO && stockDeLote(l, datos) <= 0 ? 'agotado' : e
 }
 
 function Tarjeta({ l, datos, ir }) {
@@ -34,8 +34,10 @@ function Tarjeta({ l, datos, ir }) {
         {e === 2 && fila('Polos en el taller', l.enviados)}
         {e === 2 && textoTallas(l.enviadosT) && <div className="small text-secondary text-end">{textoTallas(l.enviadosT)}</div>}
         {e === 2 && l.confeccion > 0 && fila('Al taller le pagas', soles(l.enviados * l.confeccion))}
-        {e >= 3 && fila('Quedan', `${stockDeLote(l, datos)} de ${l.recibidos}`)}
-        {e >= 3 && textoTallas(stockPorTallaDeLote(l, datos)) && <div className="small text-secondary text-end">{textoTallas(stockPorTallaDeLote(l, datos))}</div>}
+        {e === 3 && fila('Por empaquetar', l.recibidos)}
+        {e === 3 && textoTallas(l.recibidosT) && <div className="small text-secondary text-end">{textoTallas(l.recibidosT)}</div>}
+        {e >= LISTO && fila('Quedan', `${stockDeLote(l, datos)} de ${l.recibidos}`)}
+        {e >= LISTO && textoTallas(stockPorTallaDeLote(l, datos)) && <div className="small text-secondary text-end">{textoTallas(stockPorTallaDeLote(l, datos))}</div>}
         {e >= 3 && cu !== null && fila('Cada polo cuesta', soles(cu))}
         {e === 2 && fila('Gastado hasta ahora', soles(costoTotalLote(l)))}
         <button className={'btn w-100 mt-3 fw-bold ' + (sig ? 'btn-marca' : 'btn-outline-secondary')}>
@@ -69,7 +71,7 @@ export default function Lotes({ datos, ir }) {
       {lotes.length > 0 && (
         <div className="row g-3">
           {COLUMNAS.map((c) => (
-            <div className="col-md-6 col-xl-3" key={c.id}>
+            <div className="col-md-6 col-xl" key={c.id}>
               <div className={`columna-lote border-top border-4 border-${c.color} rounded-3 p-3 h-100`}>
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h2 className="fs-5 fw-bold mb-0">{c.icono} {c.titulo}</h2>
