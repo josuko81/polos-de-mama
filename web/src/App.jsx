@@ -5,6 +5,7 @@ import Vendi from './screens/Vendi.jsx'
 import Gaste from './screens/Gaste.jsx'
 import Lotes from './screens/Lotes.jsx'
 import LoteDetalle from './screens/LoteDetalle.jsx'
+import CompraTela from './screens/CompraTela.jsx'
 import Resumen from './screens/Resumen.jsx'
 
 const MENU = [
@@ -45,13 +46,19 @@ export default function App() {
     if (mensaje) setAviso(mensaje)
     return r.id
   }
+  const guardarVarios = async (tipo, objs, mensaje) => {
+    const r = await api.guardarVarios(tipo, objs)
+    setDatos(r.datos)
+    if (mensaje) setAviso(mensaje)
+    return r.ids
+  }
   const borrar = async (tipo, id, mensaje) => {
     const r = await api.borrar(tipo, id)
     setDatos(r.datos)
     if (mensaje) setAviso(mensaje)
   }
 
-  const props = { datos, ir, guardar, borrar }
+  const props = { datos, ir, guardar, guardarVarios, borrar }
 
   return (
     <>
@@ -92,7 +99,8 @@ export default function App() {
         {datos && pantalla === 'vendi' && <Vendi {...props} />}
         {datos && pantalla === 'gaste' && <Gaste {...props} />}
         {datos && pantalla === 'lotes' && <Lotes {...props} />}
-        {datos && pantalla === 'lote' && <LoteDetalle key={loteId} {...props} loteId={loteId} />}
+        {datos && pantalla === 'lote' && loteId === 'nuevo' && <CompraTela {...props} />}
+        {datos && pantalla === 'lote' && loteId !== 'nuevo' && <LoteDetalle key={loteId} {...props} loteId={loteId} />}
         {datos && pantalla === 'resumen' && <Resumen {...props} />}
       </main>
 

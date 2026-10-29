@@ -15,9 +15,9 @@ const CLAVE = 'polos-de-mama-demo'
 
 const EJEMPLO = {
   lotes: [
-    { id: 1, fecha: '2026-10-03', modelo: 'Cuello redondo', color: 'negro', paso: 5, enviados: 100, recibidos: 98, tela: 380, corte: 50, confeccion: 3.5, etiquetas: 40, otros: 20 },
-    { id: 2, fecha: '2026-10-08', modelo: 'Cuello V', color: 'gris', paso: 5, enviados: 50, recibidos: 50, tela: 220, corte: 30, confeccion: 3.8, etiquetas: 20, otros: 10 },
-    { id: 3, fecha: '2026-10-17', modelo: 'Cuello redondo', color: 'blanco', paso: 3, enviados: 60, recibidos: 0, tela: 300, corte: 30, confeccion: 4.5, etiquetas: 0, otros: 0 },
+    { id: 1, fecha: '2026-10-03', modelo: 'Cuello redondo', color: 'negro', paso: 5, rollos: 2, kilos: 19, precioKilo: 20, enviados: 100, recibidos: 98, tela: 380, corte: 50, confeccion: 3.5, etiquetas: 40, otros: 20 },
+    { id: 2, fecha: '2026-10-08', modelo: 'Cuello V', color: 'gris', paso: 5, rollos: 1, kilos: 11, precioKilo: 20, enviados: 50, recibidos: 50, tela: 220, corte: 30, confeccion: 3.8, etiquetas: 20, otros: 10 },
+    { id: 3, fecha: '2026-10-17', modelo: 'Cuello redondo', color: 'blanco', paso: 3, rollos: 2, kilos: 15, precioKilo: 20, enviados: 60, recibidos: 0, tela: 300, corte: 30, confeccion: 4.5, etiquetas: 0, otros: 0 },
   ],
   ventas: [
     { id: 'v1', fecha: '2026-10-10', loteId: 1, talla: 'M', cantidad: 12, precio: 14, pagado: true, cliente: '' },
@@ -46,20 +46,29 @@ function escribirDemo(d) {
 }
 const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
 
+function guardarEnDemo(lista, tipo, obj) {
+  if (obj.id === undefined || obj.id === null || obj.id === '') {
+    obj.id = tipo === 'lotes' ? lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1 : Math.random().toString(36).slice(2, 10)
+    lista.push(obj)
+  } else {
+    const i = lista.findIndex((x) => String(x.id) === String(obj.id))
+    if (i >= 0) lista[i] = { ...lista[i], ...obj }; else lista.push(obj)
+  }
+}
+
 const demo = {
   async getData() { await esperar(200); return leerDemo() },
   async guardar(tipo, obj) {
     await esperar(300)
     const d = leerDemo()
-    const lista = d[tipo]
-    if (obj.id === undefined || obj.id === null || obj.id === '') {
-      obj.id = tipo === 'lotes' ? lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1 : Math.random().toString(36).slice(2, 10)
-      lista.push(obj)
-    } else {
-      const i = lista.findIndex((x) => String(x.id) === String(obj.id))
-      if (i >= 0) lista[i] = { ...lista[i], ...obj }; else lista.push(obj)
-    }
+    guardarEnDemo(d[tipo], tipo, obj)
     return { datos: escribirDemo(d), id: obj.id }
+  },
+  async guardarVarios(tipo, objs) {
+    await esperar(400)
+    const d = leerDemo()
+    objs.forEach((obj) => guardarEnDemo(d[tipo], tipo, obj))
+    return { datos: escribirDemo(d), ids: objs.map((o) => o.id) }
   },
   async borrar(tipo, id) {
     await esperar(200)
@@ -99,6 +108,7 @@ const fotosVistas = new Map()
 export const api = {
   getData: () => (enAppsScript ? llamar('getData') : demo.getData()),
   guardar: (tipo, obj) => (enAppsScript ? llamar('guardar', tipo, obj) : demo.guardar(tipo, obj)),
+  guardarVarios: (tipo, objs) => (enAppsScript ? llamar('guardarVarios', tipo, objs) : demo.guardarVarios(tipo, objs)),
   borrar: (tipo, id) => (enAppsScript ? llamar('borrar', tipo, id) : demo.borrar(tipo, id)),
   subirFoto: (dataUrl) => (enAppsScript ? llamar('subirFoto', dataUrl) : demo.subirFoto(dataUrl)),
   verFoto: (id) => {

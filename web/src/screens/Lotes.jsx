@@ -29,12 +29,13 @@ function Tarjeta({ l, datos, ir }) {
             <div className="fs-5 fw-bold d-flex align-items-center gap-2"><Muestra color={l.color} />{nombreLote(l)}</div>
           </div>
         </div>
-        {e === 1 && fila('Tela', soles(l.tela))}
+        {e === 1 && (l.rollos > 0 || l.kilos > 0) && fila('Tela', [l.rollos > 0 && `${l.rollos} ${l.rollos == 1 ? 'rollo' : 'rollos'}`, l.kilos > 0 && `${l.kilos} kg`].filter(Boolean).join(' · '))}
+        {e === 1 && fila('Costó', soles(l.tela))}
         {e === 2 && fila('Polos en el taller', l.enviados)}
         {e === 2 && l.confeccion > 0 && fila('Al taller le pagas', soles(l.enviados * l.confeccion))}
         {e >= 3 && fila('Quedan', `${stockDeLote(l, datos.ventas)} de ${l.recibidos}`)}
         {e >= 3 && cu !== null && fila('Cada polo cuesta', soles(cu))}
-        {e < 3 && fila('Gastado hasta ahora', soles(costoTotalLote(l)))}
+        {e === 2 && fila('Gastado hasta ahora', soles(costoTotalLote(l)))}
         <button className={'btn w-100 mt-3 fw-bold ' + (sig ? 'btn-marca' : 'btn-outline-secondary')}>
           {sig ? `Actualizar: ${sig.icono} ${sig.titulo}` : 'Ver lote →'}
         </button>

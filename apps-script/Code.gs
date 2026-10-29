@@ -11,6 +11,7 @@ const TABLAS = {
       ['id', 'N° lote'], ['fecha', 'Fecha'], ['modelo', 'Modelo'], ['color', 'Color'], ['paso', 'Paso (1-5)'],
       ['enviados', 'Polos enviados'], ['recibidos', 'Polos recibidos'], ['tela', 'Tela S/'], ['corte', 'Corte S/'],
       ['confeccion', 'Confección por polo S/'], ['etiquetas', 'Etiquetas y bolsas S/'], ['otros', 'Pasajes y otros S/'], ['fotos', 'Fotos (ids en Drive)'],
+      ['rollos', 'Rollos'], ['kilos', 'Kilos de tela'], ['precioKilo', 'Precio por kilo S/'],
     ],
   },
   ventas: {
@@ -26,7 +27,7 @@ const TABLAS = {
   },
 };
 
-const NUMERICOS = ['paso', 'enviados', 'recibidos', 'tela', 'corte', 'confeccion', 'etiquetas', 'otros', 'loteId', 'cantidad', 'precio', 'monto'];
+const NUMERICOS = ['paso', 'enviados', 'recibidos', 'tela', 'corte', 'confeccion', 'etiquetas', 'otros', 'loteId', 'cantidad', 'precio', 'monto', 'rollos', 'kilos', 'precioKilo'];
 
 function doGet() {
   prepararHojas_();
@@ -99,31 +100,50 @@ function aFila_(tipo, obj) {
   });
 }
 
+/** Crea o actualiza un registro (sin lock; lo usan guardar y guardarVarios). */
+function guardarUno_(tipo, obj) {
+  const sh = hoja_(tipo);
+  const actuales = leer_(tipo);
+  if (obj.id === undefined || obj.id === null || obj.id === '') {
+    obj.id = tipo === 'lotes'
+      ? actuales.reduce(function (m, x) { return Math.max(m, Number(x.id) || 0); }, 0) + 1
+      : Utilities.getUuid().slice(0, 8);
+    sh.appendRow(aFila_(tipo, obj));
+  } else {
+    const ids = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), 1).getValues().map(function (r) { return String(r[0]); });
+    const i = ids.indexOf(String(obj.id));
+    if (i < 0) {
+      sh.appendRow(aFila_(tipo, obj));
+    } else {
+      const previo = actuales.filter(function (x) { return String(x.id) === String(obj.id); })[0] || {};
+      const unido = Object.assign({}, previo, obj);
+      sh.getRange(i + 2, 1, 1, TABLAS[tipo].cols.length).setValues([aFila_(tipo, unido)]);
+    }
+  }
+  return obj.id;
+}
+
 /** Crea o actualiza un registro. Devuelve todos los datos actualizados y el id. */
 function guardar(tipo, obj) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
-    const sh = hoja_(tipo);
-    const actuales = leer_(tipo);
-    if (obj.id === undefined || obj.id === null || obj.id === '') {
-      obj.id = tipo === 'lotes'
-        ? actuales.reduce(function (m, x) { return Math.max(m, Number(x.id) || 0); }, 0) + 1
-        : Utilities.getUuid().slice(0, 8);
-      sh.appendRow(aFila_(tipo, obj));
-    } else {
-      const ids = sh.getRange(2, 1, Math.max(sh.getLastRow() - 1, 1), 1).getValues().map(function (r) { return String(r[0]); });
-      const i = ids.indexOf(String(obj.id));
-      if (i < 0) {
-        sh.appendRow(aFila_(tipo, obj));
-      } else {
-        const previo = actuales.filter(function (x) { return String(x.id) === String(obj.id); })[0] || {};
-        const unido = Object.assign({}, previo, obj);
-        sh.getRange(i + 2, 1, 1, TABLAS[tipo].cols.length).setValues([aFila_(tipo, unido)]);
-      }
-    }
+    const id = guardarUno_(tipo, obj);
     SpreadsheetApp.flush();
-    return { datos: getData(), id: obj.id };
+    return { datos: getData(), id: id };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/** Crea o actualiza varios registros de una vez (por ejemplo, una compra de tela de varios colores). */
+function guardarVarios(tipo, lista) {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const ids = lista.map(function (obj) { return guardarUno_(tipo, obj); });
+    SpreadsheetApp.flush();
+    return { datos: getData(), ids: ids };
   } finally {
     lock.releaseLock();
   }

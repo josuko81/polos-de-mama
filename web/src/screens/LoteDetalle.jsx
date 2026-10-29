@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { PASOS, etapaDe, MODELOS, COLORES, colorHex, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, vendidosDeLote, soles, hoy, fechaCorta } from '../calc.js'
+import { PASOS, etapaDe, rinde, MODELOS, COLORES, colorHex, nombreLote, costoTotalLote, costoPorPolo, stockDeLote, vendidosDeLote, soles, hoy, fechaCorta } from '../calc.js'
 import BotonBorrar from './BotonBorrar.jsx'
 import Muestra from './Muestra.jsx'
 import Fotos from './Fotos.jsx'
@@ -7,12 +7,14 @@ import Fotos from './Fotos.jsx'
 // Qué se pregunta en cada paso
 const CAMPOS = {
   1: [
-    { k: 'modelo', label: 'Modelo del polo', tipo: 'modelo' },
     { k: 'color', label: 'Color', tipo: 'color' },
-    { k: 'tela', label: '¿Cuánto pagaste por la tela?', tipo: 'soles' },
+    { k: 'rollos', label: 'Rollos', tipo: 'numero', opcional: true },
+    { k: 'kilos', label: 'Kilos de tela', tipo: 'numero', opcional: true },
+    { k: 'precioKilo', label: 'Precio por kilo', tipo: 'soles', opcional: true },
     { k: 'fecha', label: 'Fecha de compra', tipo: 'fecha' },
   ],
   2: [
+    { k: 'modelo', label: '¿Qué cuello cortaste?', tipo: 'modelo' },
     { k: 'enviados', label: '¿Cuántos polos cortaste y mandaste al taller?', tipo: 'numero' },
     { k: 'confeccion', label: '¿Cuánto cobra el taller por cada polo?', tipo: 'soles' },
   ],
@@ -48,16 +50,19 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
     const datosPaso = {}
     for (const c of CAMPOS[elegido]) {
       let v = form[c.k]
+      if (c.opcional && String(v ?? '').trim() === '') continue
       if (c.tipo === 'soles' || c.tipo === 'numero') {
         v = Number(String(v === undefined ? '' : v).replace(',', '.'))
         if (String(form[c.k] ?? '').trim() === '' || isNaN(v)) return setError(`Falta: ${c.label}`)
       } else if (c.tipo === 'modelo' && !String(v || '').trim()) {
-        return setError('Elige el modelo del polo.')
+        return setError('Elige qué cuello cortaste: redondo o V.')
       } else if (c.tipo === 'color' && !String(v || '').trim()) {
         return setError('Elige el color del polo.')
       }
       datosPaso[c.k] = typeof v === 'string' ? v.trim() : v
     }
+    // La tela se calcula con kilos × precio por kilo (los lotes antiguos sin kilos conservan su monto)
+    if (datosPaso.kilos > 0 && datosPaso.precioKilo > 0) datosPaso.tela = Math.round(datosPaso.kilos * datosPaso.precioKilo * 100) / 100
     setGuardando(true)
     try {
       const nuevoPaso = Math.max(paso, elegido)
@@ -113,7 +118,11 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
 
           {!esNuevo && (
             <div className="card border-0 shadow-sm mt-3"><div className="card-body">
+              {(lote.rollos > 0 || lote.kilos > 0) && (
+                <div className="d-flex justify-content-between"><span>Tela</span><b>{[lote.rollos > 0 && `${lote.rollos} ${lote.rollos == 1 ? 'rollo' : 'rollos'}`, lote.kilos > 0 && `${lote.kilos} kg`].filter(Boolean).join(' · ')}</b></div>
+              )}
               <div className="d-flex justify-content-between"><span>Gastado en el lote</span><b>{soles(costoTotalLote(lote))}</b></div>
+              {rinde(lote) !== null && <div className="d-flex justify-content-between"><span>Cada kilo rindió</span><b>{rinde(lote)} polos</b></div>}
               {costoPorPolo(lote) !== null && <div className="d-flex justify-content-between"><span>Cada polo cuesta</span><b>{soles(costoPorPolo(lote))}</b></div>}
               {paso >= 3 && <div className="d-flex justify-content-between"><span>Vendidos / quedan</span><b>{vendidos} / {stockDeLote(lote, datos.ventas)}</b></div>}
             </div></div>
@@ -168,6 +177,9 @@ export default function LoteDetalle({ datos, loteId, guardar, borrar, ir }) {
               ))}
             </div>
 
+            {elegido === 1 && Number(vista.kilos) > 0 && Number(vista.precioKilo) > 0 && (
+              <div className="alert alert-light border fs-5 mt-4 mb-0">La tela de este lote costó <b>{soles(Number(String(vista.kilos).replace(',', '.')) * Number(String(vista.precioKilo).replace(',', '.')))}</b></div>
+            )}
             {elegido === 3 && cu !== null && (
               <div className="alert alert-success fs-5 mt-4 mb-0">Cada polo te cuesta <b>{soles(cu)}</b></div>
             )}

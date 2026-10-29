@@ -74,6 +74,9 @@ export const estadoLote = (l) => (etapaDe(l) > 0 ? PASOS[etapaDe(l) - 1].estado 
 export const costoTotalLote = (l) =>
   num(l.tela) + num(l.corte) + num(l.confeccion) * (num(l.recibidos) || num(l.enviados)) + num(l.etiquetas) + num(l.otros)
 
+// Cuántos polos buenos salieron por kilo de tela (null si falta el dato)
+export const rinde = (l) => (num(l.kilos) > 0 && num(l.recibidos) > 0 ? Math.round((num(l.recibidos) / num(l.kilos)) * 10) / 10 : null)
+
 // Costo por polo: solo se sabe cuando ya llegaron los polos del taller
 export const costoPorPolo = (l) => (num(l.recibidos) > 0 ? costoTotalLote(l) / num(l.recibidos) : null)
 
@@ -82,7 +85,8 @@ export const vendidosDeLote = (loteId, ventas) =>
 
 export const stockDeLote = (l, ventas) => (etapaDe(l) >= 3 ? num(l.recibidos) - vendidosDeLote(l.id, ventas) : 0)
 
-export const nombreLote = (l) => [l.modelo, l.color].filter(Boolean).join(' ')
+// Antes de cortar el lote todavía no tiene cuello: se llama por su tela
+export const nombreLote = (l) => (l.modelo ? [l.modelo, l.color].filter(Boolean).join(' ') : `Tela ${l.color || ''}`.trim())
 
 // Las fotos del lote se guardan como ids separados por comas
 export const fotosDe = (l) => String((l && l.fotos) || '').split(',').map((x) => x.trim()).filter(Boolean)
