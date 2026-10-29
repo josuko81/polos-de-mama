@@ -1,12 +1,12 @@
 import React from 'react'
-import { resumenMes, porCobrar, stockPorLote, soles, totalVenta, hoy, mesDe, MESES, nombreLote, fechaCorta } from '../calc.js'
+import { resumenMes, porCobrar, stockPorLote, soles, totalVenta, hoy, mesDe, MESES, nombreLote, fechaCorta, etapaDe } from '../calc.js'
 
 export default function Inicio({ datos, ir }) {
   const mes = mesDe(hoy())
   const r = resumenMes(datos, mes)
   const deben = porCobrar(datos.ventas).reduce((s, v) => s + totalVenta(v), 0)
   const stock = stockPorLote(datos).reduce((s, x) => s + x.quedan, 0)
-  const enTaller = datos.lotes.filter((l) => Number(l.paso) === 3).length
+  const enTaller = datos.lotes.filter((l) => etapaDe(l) === 2).length
   const nombreMes = MESES[Number(mes.slice(5, 7)) - 1]
 
   const ultimas = [
@@ -39,7 +39,7 @@ export default function Inicio({ datos, ir }) {
         <div className="row g-3">
           <Boton color="success" icono="💰" texto="Vendí" sub="Anotar una venta" a="vendi" />
           <Boton color="danger" icono="🧾" texto="Gasté" sub="Pasajes, luz, publicidad…" a="gaste" />
-          <Boton color="warning" icono="🧵" texto="Mis lotes" sub="Tela, corte, taller, recojo" a="lotes" />
+          <Boton color="warning" icono="🧵" texto="Mis lotes" sub="Tela, taller, recojo" a="lotes" />
           <Boton color="primary" icono="📊" texto="¿Cómo me va?" sub="Lo que me quedó este mes" a="resumen" />
         </div>
       </div>

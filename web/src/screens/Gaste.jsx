@@ -33,7 +33,7 @@ export default function Gaste({ datos, guardar, borrar }) {
     <div className="row g-4">
       <div className="col-lg-7">
         <h1 className="fw-bold mb-1">🧾 Gasté</h1>
-        <p className="fs-5 text-secondary mb-4">Lo que no es de un lote. Lo de tela, corte o taller va en «Mis lotes».</p>
+        <p className="fs-5 text-secondary mb-4">Lo que no es de un lote, como las cajas de etiquetas y bolsas. Lo de tela o taller va en «Mis lotes».</p>
         <div className="card border-0 shadow-sm"><div className="card-body p-4 d-flex flex-column gap-4">
           <div>
             <div className="fs-5 fw-bold mb-2">¿En qué?</div>

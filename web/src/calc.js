@@ -1,12 +1,18 @@
 // Cálculos del negocio. Todo lo que la app "sabe" sale de aquí.
 
+// Etapas del lote. En la hoja, la columna "paso" sigue usando la escala antigua de 1 a 5
+// (`valor`), así los lotes anotados antes de este cambio caen solos en su etapa.
 export const PASOS = [
-  { n: 1, titulo: 'Compré la tela', estado: 'Tela comprada' },
-  { n: 2, titulo: 'Lo corté', estado: 'Cortado' },
-  { n: 3, titulo: 'Lo mandé al taller', estado: 'En el taller' },
-  { n: 4, titulo: 'Lo recogí', estado: 'Recogido' },
-  { n: 5, titulo: 'Etiquetado y listo', estado: 'Listo para vender' },
+  { n: 1, titulo: 'Compré la tela', estado: 'Tela comprada', icono: '🧶', color: 'info', valor: 1 },
+  { n: 2, titulo: 'Corté y mandé al taller', estado: 'En el taller', icono: '✂️', color: 'warning', valor: 3 },
+  { n: 3, titulo: 'Recogí del taller', estado: 'Listo para vender', icono: '✅', color: 'success', valor: 5 },
 ]
+
+// Etapa (0 a 3) según el paso guardado: 1-2 → tela comprada, 3 → en el taller, 4-5 → listo
+export const etapaDe = (l) => {
+  const p = Number(l && l.paso) || 0
+  return p >= 4 ? 3 : p >= 3 ? 2 : p >= 1 ? 1 : 0
+}
 
 export const TALLAS = ['M', 'Estándar', 'L']
 // Precio por mayor según la talla (se puede cambiar al anotar la venta)
@@ -61,9 +67,10 @@ export const fechaCorta = (iso) => {
   return `${d}/${m}/${y}`
 }
 
-export const estadoLote = (l) => (num(l.paso) > 0 ? PASOS[num(l.paso) - 1].estado : 'Nuevo')
+export const estadoLote = (l) => (etapaDe(l) > 0 ? PASOS[etapaDe(l) - 1].estado : 'Nuevo')
 
-// Costo total del lote: tela + corte + confección por polo × polos + etiquetas + pasajes y otros
+// Costo total del lote: tela + confección por polo × polos + pasajes y otros.
+// Corte y etiquetas ya no se preguntan, pero se suman si un lote antiguo los tiene.
 export const costoTotalLote = (l) =>
   num(l.tela) + num(l.corte) + num(l.confeccion) * (num(l.recibidos) || num(l.enviados)) + num(l.etiquetas) + num(l.otros)
 
@@ -73,7 +80,7 @@ export const costoPorPolo = (l) => (num(l.recibidos) > 0 ? costoTotalLote(l) / n
 export const vendidosDeLote = (loteId, ventas) =>
   ventas.filter((v) => String(v.loteId) === String(loteId)).reduce((s, v) => s + num(v.cantidad), 0)
 
-export const stockDeLote = (l, ventas) => (num(l.paso) >= 4 ? num(l.recibidos) - vendidosDeLote(l.id, ventas) : 0)
+export const stockDeLote = (l, ventas) => (etapaDe(l) >= 3 ? num(l.recibidos) - vendidosDeLote(l.id, ventas) : 0)
 
 export const nombreLote = (l) => [l.modelo, l.color].filter(Boolean).join(' ')
 
@@ -112,6 +119,6 @@ export const porCobrar = (ventas) => ventas.filter((v) => !v.pagado)
 
 export function stockPorLote(datos) {
   return datos.lotes
-    .filter((l) => num(l.paso) >= 4)
+    .filter((l) => etapaDe(l) >= 3)
     .map((l) => ({ lote: l, quedan: stockDeLote(l, datos.ventas), costo: costoPorPolo(l) }))
 }

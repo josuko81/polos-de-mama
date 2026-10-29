@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { resumenMes, porCobrar, stockPorLote, soles, totalVenta, hoy, mesDe, MESES, nombreLote, fechaCorta } from '../calc.js'
+import { resumenMes, porCobrar, stockPorLote, soles, totalVenta, hoy, mesDe, MESES, nombreLote, fechaCorta, etapaDe } from '../calc.js'
 import BotonBorrar from './BotonBorrar.jsx'
 
 const moverMes = (mes, d) => {
@@ -15,7 +15,7 @@ export default function Resumen({ datos, guardar, borrar }) {
   const r = resumenMes(datos, mes)
   const deben = porCobrar(datos.ventas)
   const stock = stockPorLote(datos)
-  const enTaller = datos.lotes.filter((l) => Number(l.paso) > 0 && Number(l.paso) < 4)
+  const enTaller = datos.lotes.filter((l) => etapaDe(l) > 0 && etapaDe(l) < 3)
   const lote = (id) => datos.lotes.find((l) => String(l.id) === String(id))
   const titulo = `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}`
 

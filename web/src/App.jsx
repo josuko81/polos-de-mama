@@ -92,7 +92,7 @@ export default function App() {
         {datos && pantalla === 'vendi' && <Vendi {...props} />}
         {datos && pantalla === 'gaste' && <Gaste {...props} />}
         {datos && pantalla === 'lotes' && <Lotes {...props} />}
-        {datos && pantalla === 'lote' && <LoteDetalle {...props} loteId={loteId} />}
+        {datos && pantalla === 'lote' && <LoteDetalle key={loteId} {...props} loteId={loteId} />}
         {datos && pantalla === 'resumen' && <Resumen {...props} />}
       </main>
 
