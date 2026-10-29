@@ -26,8 +26,9 @@ export default function CompraTela({ datos, guardarVarios, ir }) {
     setError('')
     if (!color.trim()) return setError('Elige el color de la tela.')
     if (!rollos || rollos < 1) return setError('Pon cuántos rollos son (al menos 1).')
-    if (!kg) return setError('Pon cuántos kilos pesó la tela de ese color.')
-    setLineas([...lineas, { color: color.trim().toLowerCase(), rollos, kilos: kg }])
+    if (!kg) return setError('Pon cuántos kilos pesa cada rollo.')
+    // Los kilos se anotan por rollo: cada rollo es un paquete aparte
+    setLineas([...lineas, { color: color.trim().toLowerCase(), rollos, kilosRollo: kg, kilos: redondear(rollos * kg) }])
     setColor(''); setRollos(1); setKilos('')
   }
 
@@ -102,14 +103,19 @@ export default function CompraTela({ datos, guardarVarios, ir }) {
                 </div>
               </div>
               <div className="col-md-6">
-                <label htmlFor="kilos" className="fw-bold mb-2">¿Cuántos kilos pesaron?</label>
+                <label htmlFor="kilos" className="fw-bold mb-2">¿Cuántos kilos pesa cada rollo?</label>
                 <div className="input-group input-group-lg">
                   <input id="kilos" className="form-control fs-4" inputMode="decimal" placeholder="0" value={kilos} onChange={(e) => setKilos(e.target.value)} />
                   <span className="input-group-text">kg</span>
                 </div>
               </div>
             </div>
-            {kg > 0 && pk > 0 && <div className="mt-3 fs-5">Esta tela cuesta <b>{soles(kg * pk)}</b></div>}
+            {kg > 0 && (
+              <div className="mt-3 fs-5">
+                {rollos} {rollos === 1 ? 'rollo' : 'rollos'} × {kg} kg = <b>{redondear(rollos * kg)} kg</b>
+                {pk > 0 && <> · cuesta <b>{soles(rollos * kg * pk)}</b></>}
+              </div>
+            )}
             <button className="btn btn-warning btn-lg fw-bold w-100 mt-3 py-3" onClick={agregar}>＋ Agregar a la compra</button>
           </div></div>
         </div>
@@ -125,7 +131,7 @@ export default function CompraTela({ datos, guardarVarios, ir }) {
                     <Muestra color={x.color} tam="1.8rem" />
                     <div className="flex-grow-1">
                       <div className="fw-bold text-capitalize">{x.color}</div>
-                      <div className="small text-secondary">{x.rollos} {x.rollos === 1 ? 'rollo' : 'rollos'} · {x.kilos} kg</div>
+                      <div className="small text-secondary">{x.rollos} {x.rollos === 1 ? 'rollo' : 'rollos'} × {x.kilosRollo} kg = {x.kilos} kg</div>
                     </div>
                     {pk > 0 && <b>{soles(x.kilos * pk)}</b>}
                     <button className="btn btn-sm btn-outline-secondary" title="Quitar" onClick={() => setLineas(lineas.filter((_, j) => j !== i))}>✕</button>

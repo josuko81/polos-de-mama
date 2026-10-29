@@ -9,7 +9,7 @@ const CAMPOS = {
   1: [
     { k: 'color', label: 'Color', tipo: 'color' },
     { k: 'rollos', label: 'Rollos', tipo: 'numero', opcional: true },
-    { k: 'kilos', label: 'Kilos de tela', tipo: 'numero', opcional: true },
+    { k: 'kilos', label: 'Kilos de tela (todos los rollos juntos)', tipo: 'numero', opcional: true },
     { k: 'precioKilo', label: 'Precio por kilo', tipo: 'soles', opcional: true },
     { k: 'fecha', label: 'Fecha de compra', tipo: 'fecha' },
   ],
