@@ -138,7 +138,10 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
           </div></div>
 
           <div className="card border-0 shadow-sm"><div className="card-body">
-            <div className="fw-bold mb-2">Telas usadas</div>
+            <div className="fw-bold mb-2">Tela</div>
+            {lineas.every((x) => !(x.telas || []).length) && (
+              <div className="small text-secondary">{lineas.some((x) => Number(x.costoTela) > 0) ? `Costo de la tela: ${soles(lineas.reduce((s, x) => s + (Number(x.costoTela) || 0), 0))}` : 'No se anotó la tela.'}</div>
+            )}
             {lineas.flatMap((x) => (x.telas || []).map((u, i) => {
               const te = telaPorId(datos, u.telaId)
               return (

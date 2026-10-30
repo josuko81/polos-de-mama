@@ -158,7 +158,8 @@ export function piezasDeTanda(t, datos) {
   const totalRec = colores.reduce((s, x) => s + (sumaTallas(x.recibidosT) || sumaTallas(x.cortadosT)), 0)
   return colores.map((x, i) => {
     const rec = sumaTallas(x.recibidosT) || sumaTallas(x.cortadosT)
-    const tela = (x.telas || []).reduce((s, u) => { const te = telaPorId(datos, u.telaId); return s + (te ? costoTelaUsada(te, num(u.fraccion), datos) : 0) }, 0)
+    // Tela del almacén (la parte usada) o, si no se eligió ninguna, el costo puesto a mano
+    const tela = (x.telas || []).reduce((s, u) => { const te = telaPorId(datos, u.telaId); return s + (te ? costoTelaUsada(te, num(u.fraccion), datos) : 0) }, 0) + num(x.costoTela)
     return {
       id: `T${t.id}-${i}`, tandaId: t.id, fecha: t.fechaRecojo || t.fecha, disenoId: t.disenoId,
       modelo: (disenoPorId(t.disenoId) || {}).cuello || '', color: x.color,
