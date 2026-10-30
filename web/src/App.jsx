@@ -10,21 +10,38 @@ import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
 import Tela from './screens/Tela.jsx'
 import Clientes from './screens/Clientes.jsx'
+import Talleres from './screens/Talleres.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
-// En el orden en que trabaja el negocio: comprar tela → diseño → producir → vender → clientes → gastos → resultados.
-// `activo`: otras pantallas que marcan el mismo botón del menú
+// Menú en 4 grupos, en el orden en que trabaja el negocio: producir → vender → revisar cuentas.
+// Cada grupo tiene pestañas; la primera es la que se abre al tocar el grupo.
+// `otras`: pantallas que pertenecen a esa pestaña (por ejemplo, la compra de tela es parte de Tela).
 const MENU = [
-  { id: 'inicio', texto: 'Inicio', icono: '🏠' },
-  { id: 'tela', texto: 'Tela', icono: '📦', activo: ['compra-tela'] },
-  { id: 'disenos', texto: 'Diseños', icono: '👕' },
-  { id: 'produccion', texto: 'Producción', icono: '✂️', activo: ['nueva-tanda', 'tanda', 'talleres', 'lotes', 'lote'] },
-  { id: 'vendi', texto: 'Vendí', icono: '💰' },
-  { id: 'clientes', texto: 'Clientes', icono: '👥' },
-  { id: 'gaste', texto: 'Gasté', icono: '🧾' },
-  { id: 'resumen', texto: '¿Cómo me va?', icono: '📊' },
+  { id: 'inicio', texto: 'Inicio', icono: '🏠', pestanas: [{ id: 'inicio' }] },
+  {
+    id: 'produccion', texto: 'Producción', icono: '✂️', pestanas: [
+      { id: 'produccion', texto: 'Tablero', icono: '📋', otras: ['nueva-tanda', 'tanda', 'lotes', 'lote'] },
+      { id: 'tela', texto: 'Tela', icono: '📦', otras: ['compra-tela'] },
+      { id: 'disenos', texto: 'Diseños', icono: '👕' },
+      { id: 'talleres', texto: 'Talleres', icono: '🏭' },
+    ],
+  },
+  {
+    id: 'ventas', texto: 'Ventas', icono: '💰', pestanas: [
+      { id: 'vendi', texto: 'Vendí', icono: '💰' },
+      { id: 'clientes', texto: 'Clientes', icono: '👥' },
+    ],
+  },
+  {
+    id: 'cuentas', texto: 'Mis cuentas', icono: '📊', pestanas: [
+      { id: 'resumen', texto: '¿Cómo me va?', icono: '📊' },
+      { id: 'gaste', texto: 'Gasté', icono: '🧾' },
+    ],
+  },
 ]
+const esDe = (pestana, p) => pestana.id === p || (pestana.otras || []).includes(p)
+const grupoDe = (p) => MENU.find((g) => g.pestanas.some((t) => esDe(t, p))) || MENU[0]
 
 export default function App() {
   const [datos, setDatos] = useState(null)
@@ -75,6 +92,7 @@ export default function App() {
 
   if (datos) registrarDisenos(datos.disenos)
   const props = { datos, ir, guardar, guardarVarios, borrar, borrarVarios }
+  const grupo = grupoDe(pantalla)
 
   return (
     <>
@@ -83,19 +101,31 @@ export default function App() {
           <span className="navbar-brand fw-bold fs-3 cursor-pointer" onClick={() => ir('inicio')}>
             👕 Polos de Mamá
           </span>
-          <div className="d-flex flex-wrap gap-2">
+          <div className="d-flex flex-wrap gap-2 menu-grupos">
             {MENU.map((m) => (
               <button
                 key={m.id}
-                className={'btn btn-lg boton-menu ' + (pantalla === m.id || (m.activo || []).includes(pantalla) ? 'btn-light fw-bold' : 'btn-outline-light')}
-                onClick={() => ir(m.id)}
+                className={'btn btn-lg boton-menu ' + (m === grupo ? 'btn-light fw-bold' : 'btn-outline-light')}
+                onClick={() => ir(m.pestanas[0].id)}
               >
-                {m.icono} {m.texto}
+                <span className="d-block d-sm-inline">{m.icono}</span> {m.texto}
               </button>
             ))}
           </div>
         </div>
       </nav>
+
+      {grupo.pestanas.length > 1 && (
+        <div className="barra-pestanas shadow-sm">
+          <div className="container-fluid contenedor d-flex gap-2 py-2">
+            {grupo.pestanas.map((t) => (
+              <button key={t.id} className={'btn btn-lg rounded-pill text-nowrap pestana ' + (esDe(t, pantalla) ? 'btn-marca fw-bold' : 'btn-light')} onClick={() => ir(t.id)}>
+                {t.icono} {t.texto}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {modoPrueba && (
         <div className="bg-warning-subtle text-warning-emphasis text-center small py-1">
@@ -126,7 +156,7 @@ export default function App() {
         {datos && pantalla === 'tela' && <Tela {...props} />}
         {datos && pantalla === 'clientes' && <Clientes {...props} />}
         {datos && pantalla === 'compra-tela' && <CompraTela {...props} />}
-        {datos && pantalla === 'talleres' && <Produccion key="talleres" {...props} abrir={{ tipo: 'talleres' }} />}
+        {datos && pantalla === 'talleres' && <Talleres {...props} />}
       </main>
 
       {aviso && <div className="alert alert-success shadow aviso fs-5 text-center">✅ {aviso}</div>}

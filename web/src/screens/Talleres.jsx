@@ -110,7 +110,6 @@ export default function Talleres({ datos, guardar, borrar, ir, enVentana = false
 
   return (
     <>
-      {!enVentana && <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('produccion')}>← Producción</button>}
       <div className={'d-flex flex-wrap align-items-center gap-3 mb-4 ' + (enVentana ? 'justify-content-end' : 'justify-content-between')}>
         {!enVentana && <h1 className="fw-bold mb-0">🏭 Talleres</h1>}
         {!creando && <button className="btn btn-warning btn-lg fw-bold" onClick={() => setCreando(true)}>＋ Agregar taller</button>}

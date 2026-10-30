@@ -26,7 +26,16 @@ h1, h2 { color: var(--marca); }
 /* Ancho de la página: aprovecha pantallas grandes sin estirarse de más */
 .contenedor { max-width: 1680px; }
 @media (min-width: 992px) { .contenedor { padding-left: 2rem; padding-right: 2rem; } }
-@media (max-width: 575px) { .boton-menu { --bs-btn-padding-y: .3rem; --bs-btn-padding-x: .6rem; --bs-btn-font-size: 1rem; } }
+/* Pestañas de cada grupo del menú (debajo de la barra verde) */
+.barra-pestanas { background: #fff; position: sticky; top: 0; z-index: 1010; }
+.barra-pestanas .container-fluid { overflow-x: auto; }
+@media (max-width: 575px) { .pestana { --bs-btn-padding-y: .35rem; --bs-btn-padding-x: .8rem; --bs-btn-font-size: 1rem; } }
+/* En el celular los 4 grupos van en una sola fila, con el ícono arriba del texto */
+@media (max-width: 575px) {
+  .navbar-marca .navbar-brand { font-size: 1.35rem !important; }
+  .menu-grupos { width: 100%; flex-wrap: nowrap !important; gap: .35rem !important; }
+  .boton-menu { flex: 1 1 0; white-space: nowrap; --bs-btn-padding-y: .3rem; --bs-btn-padding-x: .15rem; --bs-btn-font-size: .85rem; }
+}
 .tarjeta-lote { transition: transform .1s; }
 .tarjeta-lote:hover { transform: translateY(-2px); }
 .foto { display: block; object-fit: cover; border-radius: .75rem; background: #dfe6e3; }

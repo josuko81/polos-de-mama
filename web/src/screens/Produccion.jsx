@@ -5,7 +5,6 @@ import { FotoMini } from './Fotos.jsx'
 import Ventana from './Ventana.jsx'
 import NuevaTanda from './NuevaTanda.jsx'
 import TandaDetalle from './TandaDetalle.jsx'
-import Talleres from './Talleres.jsx'
 
 // Las tandas ya vendidas por completo no se muestran: eso se ve en «¿Cómo me va?»
 const COLUMNAS = ETAPAS_TANDA.map((e) => ({ id: e.n, titulo: e.estado, icono: e.icono, color: e.color }))
@@ -49,7 +48,6 @@ export default function Produccion(props) {
   // Dentro de la ventana, "ir" a producción la cierra y "ir" a una tanda la cambia
   const ir = (p, id = null) => {
     if (p === 'nueva-tanda') setVentana({ tipo: 'nueva' })
-    else if (p === 'talleres') setVentana({ tipo: 'talleres' })
     else if (p === 'tanda') setVentana({ tipo: 'tanda', id })
     else if (p === 'produccion') setVentana(null)
     else { setVentana(null); irApp(p, id) }
@@ -67,10 +65,7 @@ export default function Produccion(props) {
           <h1 className="fw-bold mb-1">✂️ Producción</h1>
           <p className="fs-5 text-secondary mb-0">Cada tanda en su etapa. Tócala para actualizarla.</p>
         </div>
-        <div className="d-flex flex-wrap gap-2">
-          <button className="btn btn-outline-secondary btn-lg" onClick={() => ir('talleres')}>🏭 Talleres</button>
-          <button className="btn btn-warning btn-lg fw-bold px-4" onClick={() => ir('nueva-tanda')}>＋ Nueva tanda (corté)</button>
-        </div>
+        <button className="btn btn-warning btn-lg fw-bold px-4" onClick={() => ir('nueva-tanda')}>＋ Nueva tanda (corté)</button>
       </div>
 
       {tandas.length === 0 && (
@@ -105,11 +100,6 @@ export default function Produccion(props) {
       {ventana && ventana.tipo === 'nueva' && (
         <Ventana titulo="✂️ Nueva tanda" onCerrar={() => setVentana(null)}>
           <NuevaTanda {...props} ir={ir} enVentana />
-        </Ventana>
-      )}
-      {ventana && ventana.tipo === 'talleres' && (
-        <Ventana titulo="🏭 Talleres" onCerrar={() => setVentana(null)}>
-          <Talleres {...props} ir={ir} enVentana />
         </Ventana>
       )}
       {ventana && ventana.tipo === 'tanda' && (
