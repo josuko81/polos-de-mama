@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   TALLAS, ETAPAS_TANDA, etapaTanda, coloresDeTanda, cortadosDeTanda, piezasDeTanda, costoPorPolo, stockPorTallaDeLote, stockDeLote,
-  tallerPorId, telaPorId, fraccionUsada, coloresDeTelas, disenoPorId, nombreTanda, leerTallas, sumaTallas, diasEntre, hoy, soles, fechaCorta,
+  tallerPorId, telaPorId, fraccionUsada, disenoPorId, nombreTanda, leerTallas, sumaTallas, diasEntre, hoy, soles, fechaCorta,
 } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
@@ -107,7 +107,6 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
           {!enVentana && <h1 className="fw-bold mb-1">{nombreTanda(tanda)}</h1>}
           <div className="d-flex flex-wrap align-items-center gap-2 fs-5 text-secondary">
             <span className={`badge text-bg-${ETAPAS_TANDA[etapa - 1].color} fs-6`}>{ETAPAS_TANDA[etapa - 1].icono} {ETAPAS_TANDA[etapa - 1].estado}</span>
-            <span className="d-flex gap-1" title="Colores de las telas">{coloresDeTelas(tanda, datos).map((c) => <Muestra key={c} color={c} />)}</span>
             <span>{totalCortado} polos · cortada el {fechaCorta(tanda.fecha)}</span>
           </div>
         </div>

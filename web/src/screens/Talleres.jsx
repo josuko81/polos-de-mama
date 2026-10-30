@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { pendientesPorTaller, coloresDeTelas, nombreTanda, soles, fechaCorta } from '../calc.js'
+import { pendientesPorTaller, nombreTanda, soles, fechaCorta } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 
@@ -31,7 +31,6 @@ export function PanelTalleres({ datos, ir }) {
                   <div className="small text-secondary mb-2">Al recoger pagas {soles(f.aPagar)}</div>
                   {f.tandas.map((x) => (
                     <button key={x.tanda.id} className="btn btn-light border w-100 text-start d-flex align-items-center gap-2 mb-2" onClick={() => ir('tanda', x.tanda.id)}>
-                      <span className="d-flex gap-1">{coloresDeTelas(x.tanda, datos).slice(0, 6).map((c) => <Muestra key={c} color={c} tam="1rem" />)}</span>
                       <span className="flex-grow-1">{nombreTanda(x.tanda)} · {x.polos} polos</span>
                       {x.atraso > 0
                         ? <span className="badge text-bg-danger">⚠️ {x.atraso} {x.atraso === 1 ? 'día' : 'días'} de atraso</span>
