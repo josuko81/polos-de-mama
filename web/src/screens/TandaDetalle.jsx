@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
 import {
   TALLAS, ETAPAS_TANDA, etapaTanda, coloresDeTanda, cortadosDeTanda, piezasDeTanda, costoPorPolo, stockPorTallaDeLote, stockDeLote,
-  tallerPorId, telaPorId, fraccionUsada, disenoPorId, nombreTanda, leerTallas, sumaTallas, diasEntre, hoy, soles, fechaCorta,
+  tallerPorId, telaPorId, fraccionUsada, avanceDeTanda, disenoPorId, nombreTanda, leerTallas, sumaTallas, diasEntre, hoy, soles, fechaCorta,
 } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import { FotoMini } from './Fotos.jsx'
-import { CamposTaller, validarTaller } from './NuevaTanda.jsx'
 
 const numero = (v) => Number(String(v ?? '').replace(',', '.')) || 0
 const aTexto = (o) => Object.fromEntries(TALLAS.map((t) => [t, leerTallas(o)[t] ? String(leerTallas(o)[t]) : '']))
@@ -44,7 +43,6 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
   const tanda = (datos.tandas || []).find((t) => String(t.id) === String(tandaId))
   const lineas = coloresDeTanda(tanda)
   const colores = lineas.map((x) => x.color)
-  const [taller, setTaller] = useState({})
   const [recibidos, setRecibidos] = useState(() => Object.fromEntries(lineas.map((x) => [x.color, aTexto(sumaTallas(x.recibidosT) ? x.recibidosT : x.cortadosT)])))
   const [corrigiendo, setCorrigiendo] = useState(false)
   const [cortados, setCortados] = useState(() => Object.fromEntries(lineas.map((x) => [x.color, aTexto(x.cortadosT)])))
@@ -69,11 +67,6 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
     setError('')
     setGuardando(true)
     try { await guardar('tandas', { id: tanda.id, ...obj }, msg) } catch (e) { setError('No se pudo guardar. Revisa el internet y vuelve a intentar.') } finally { setGuardando(false) }
-  }
-  const mandarAlTaller = () => {
-    const e = validarTaller(taller)
-    if (e) return setError(e)
-    accion({ etapa: 2, tallerId: taller.tallerId, precioTaller: numero(taller.precioTaller), fechaEnvio: hoy(), fechaEstimada: taller.fechaEstimada || '' }, 'Tanda mandada al taller')
   }
   const recoger = () => {
     const vacio = colores.find((c) => !sumaTallas(aNumeros(recibidos[c])))
@@ -132,7 +125,7 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
             {dias !== null && <div className="d-flex justify-content-between"><span>{etapa >= 3 ? 'Demoró' : 'Lleva'}</span><b>{dias} {dias === 1 ? 'día' : 'días'}</b></div>}
             {atraso > 0 && <div className="alert alert-danger py-1 px-2 mt-2 mb-0">⚠️ {atraso} {atraso === 1 ? 'día' : 'días'} de atraso</div>}
             {Number(tanda.precioTaller) > 0 && (
-              <div className="d-flex justify-content-between mt-2"><span>{tanda.pagado ? 'Se pagó al taller' : 'Al recoger pagas'}</span>
+              <div className="d-flex justify-content-between mt-2"><span>Costura</span>
                 <b>{soles((etapa >= 3 ? piezas.reduce((s, p) => s + p.recibidos, 0) : totalCortado) * Number(tanda.precioTaller))}</b></div>
             )}
           </div></div>
@@ -158,10 +151,9 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
           {etapa === 1 && (
             <div className="card border-0 shadow-sm"><div className="card-body p-4">
               <h2 className="fw-bold mb-2">🎨 Estampando</h2>
-              <p className="fs-5">Cuando terminen de estampar, elige el taller y mándala.</p>
-              <CamposTaller datos={datos} guardar={guardar} valor={taller} onCambio={setTaller} />
-              {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
-              <button className="btn btn-marca btn-lg py-3 px-5 fs-4 mt-4" disabled={guardando} onClick={mandarAlTaller}>Listo: estampé y mandé al taller</button>
+              <p className="fs-5">Cuando terminen de estampar y la lleves al taller, toca el botón.</p>
+              {error && <div className="alert alert-danger mb-3">{error}</div>}
+              <button className="btn btn-marca btn-lg py-3 px-5 fs-4" disabled={guardando} onClick={() => accion(avanceDeTanda(tanda), 'Tanda mandada al taller')}>Listo: estampé y mandé al taller</button>
             </div></div>
           )}
 
@@ -183,7 +175,7 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
               </div>
               {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
               <button className="btn btn-marca btn-lg py-3 px-5 fs-4 mt-4" disabled={guardando} onClick={recoger}>
-                Listo: recogí y pagué {soles(totalRecibido * Number(tanda.precioTaller || 0))}
+                Listo: recogí{Number(tanda.precioTaller) > 0 ? ` (costura ${soles(totalRecibido * Number(tanda.precioTaller))})` : ''}
               </button>
             </div></div>
           )}

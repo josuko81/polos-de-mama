@@ -168,31 +168,28 @@ export function piezasDeTanda(t, datos) {
     }
   })
 }
+// Lo que se guarda al pasar una tanda a la siguiente etapa con un solo toque.
+// Al recoger, si no se corrigió nada, llegó lo mismo que se cortó.
+export const AVANCE_TANDA = {
+  1: { texto: '🏭 Mandé al taller', aviso: 'Tanda mandada al taller' },
+  2: { texto: '🧼 Recogí', aviso: 'Tanda recogida: a empaquetar' },
+  3: { texto: '✅ Empaqueté', aviso: 'Tanda lista para vender 🎉' },
+}
+export function avanceDeTanda(t) {
+  const e = etapaTanda(t)
+  if (e === 1) return { etapa: 2, fechaEnvio: hoy() }
+  if (e === 2) {
+    const colores = coloresDeTanda(t).map((x) => ({ ...x, recibidosT: sumaTallas(x.recibidosT) ? x.recibidosT : x.cortadosT }))
+    return { etapa: 3, fechaRecojo: hoy(), pagado: true, colores: JSON.stringify(colores) }
+  }
+  if (e === 3) return { etapa: 4 }
+  return null
+}
+
 // Colores de las telas que usó una tanda (solo para reconocerla; el stock no los usa)
 export const coloresDeTelas = (t, datos) =>
   [...new Set(coloresDeTanda(t).flatMap((c) => (c.telas || []).map((u) => (telaPorId(datos, u.telaId) || {}).color || c.color)).filter(Boolean))]
 export const nombreTanda = (t) => `Tanda ${t.id}${nombreDiseno(t.disenoId) ? ' · ' + nombreDiseno(t.disenoId) : ''}`
-
-// Tandas pendientes en cada taller, para el panel de Inicio
-export function pendientesPorTaller(datos) {
-  const hoyIso = hoy()
-  return (datos.talleres || []).map((tl) => {
-    const tandas = (datos.tandas || []).filter((t) => etapaTanda(t) === 2 && String(t.tallerId) === String(tl.id))
-      .map((t) => ({
-        tanda: t, polos: cortadosDeTanda(t), dias: diasEntre(t.fechaEnvio, hoyIso),
-        atraso: t.fechaEstimada ? Math.max(0, diasEntre(t.fechaEstimada, hoyIso)) : 0,
-        aPagar: cortadosDeTanda(t) * num(t.precioTaller),
-      }))
-      .sort((a, b) => b.dias - a.dias)
-    const hechas = (datos.tandas || []).filter((t) => String(t.tallerId) === String(tl.id) && t.fechaEnvio && t.fechaRecojo)
-    const promedio = hechas.length ? Math.round(hechas.reduce((s, t) => s + diasEntre(t.fechaEnvio, t.fechaRecojo), 0) / hechas.length) : null
-    return {
-      taller: tl, tandas, promedio,
-      polos: tandas.reduce((s, x) => s + x.polos, 0),
-      aPagar: tandas.reduce((s, x) => s + x.aPagar, 0),
-    }
-  })
-}
 
 // ---------- Stock ----------
 // Un "producto" es diseño + talla. Si varios lotes o tandas tienen el mismo producto, su stock se suma.

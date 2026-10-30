@@ -1,6 +1,6 @@
 import React from 'react'
 import { resumenMes, porCobrar, stockTotal, soles, totalVenta, hoy, mesDe, MESES, nombreVenta, fechaCorta, etapaDe, etapaTanda, pedidos } from '../calc.js'
-import { PanelTalleres } from './Talleres.jsx'
+import PanelCostura from './PanelCostura.jsx'
 
 export default function Inicio({ datos, ir }) {
   const mes = mesDe(hoy())
@@ -34,7 +34,7 @@ export default function Inicio({ datos, ir }) {
 
   return (
     <>
-    <PanelTalleres datos={datos} ir={ir} />
+    <PanelCostura datos={datos} ir={ir} />
     <div className="row g-4">
       <div className="col-lg-8">
         <h1 className="fw-bold mb-1">Hola 👋</h1>

@@ -10,7 +10,6 @@ import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
 import Tela from './screens/Tela.jsx'
 import Clientes from './screens/Clientes.jsx'
-import Talleres from './screens/Talleres.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
@@ -24,7 +23,6 @@ const MENU = [
       { id: 'produccion', texto: 'Tablero', icono: '📋', otras: ['nueva-tanda', 'tanda', 'lotes', 'lote'] },
       { id: 'tela', texto: 'Tela', icono: '📦', otras: ['compra-tela'] },
       { id: 'disenos', texto: 'Diseños', icono: '👕' },
-      { id: 'talleres', texto: 'Talleres', icono: '🏭' },
     ],
   },
   {
@@ -156,7 +154,6 @@ export default function App() {
         {datos && pantalla === 'tela' && <Tela {...props} />}
         {datos && pantalla === 'clientes' && <Clientes {...props} />}
         {datos && pantalla === 'compra-tela' && <CompraTela {...props} />}
-        {datos && pantalla === 'talleres' && <Talleres {...props} />}
       </main>
 
       {aviso && <div className="alert alert-success shadow aviso fs-5 text-center">✅ {aviso}</div>}
