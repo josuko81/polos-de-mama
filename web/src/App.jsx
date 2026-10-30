@@ -8,8 +8,6 @@ import LoteDetalle from './screens/LoteDetalle.jsx'
 import CompraTela from './screens/CompraTela.jsx'
 import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
-import NuevaTanda from './screens/NuevaTanda.jsx'
-import TandaDetalle from './screens/TandaDetalle.jsx'
 import Tela from './screens/Tela.jsx'
 import Talleres from './screens/Talleres.jsx'
 import { registrarDisenos } from './calc.js'
@@ -115,9 +113,10 @@ export default function App() {
         {datos && pantalla === 'lote' && loteId !== 'nuevo' && <LoteDetalle key={loteId} {...props} loteId={loteId} />}
         {datos && pantalla === 'resumen' && <Resumen {...props} />}
         {datos && pantalla === 'disenos' && <Disenos {...props} />}
-        {datos && pantalla === 'produccion' && <Produccion {...props} />}
-        {datos && pantalla === 'nueva-tanda' && <NuevaTanda {...props} />}
-        {datos && pantalla === 'tanda' && <TandaDetalle key={loteId} {...props} tandaId={loteId} />}
+        {datos && pantalla === 'produccion' && <Produccion key="produccion" {...props} />}
+        {/* Nueva tanda y cada tanda se abren como ventana encima de Producción */}
+        {datos && pantalla === 'nueva-tanda' && <Produccion key="nueva" {...props} abrir={{ tipo: 'nueva' }} />}
+        {datos && pantalla === 'tanda' && <Produccion key={'tanda' + loteId} {...props} abrir={{ tipo: 'tanda', id: loteId }} />}
         {datos && pantalla === 'tela' && <Tela {...props} />}
         {datos && pantalla === 'compra-tela' && <CompraTela {...props} />}
         {datos && pantalla === 'talleres' && <Talleres {...props} />}

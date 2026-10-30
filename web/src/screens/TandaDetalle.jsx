@@ -40,7 +40,7 @@ function TablaTallas({ colores, valores, onCambio, prefijo }) {
   )
 }
 
-export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, borrar, ir }) {
+export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, borrar, ir, enVentana = false }) {
   const tanda = (datos.tandas || []).find((t) => String(t.id) === String(tandaId))
   const lineas = coloresDeTanda(tanda)
   const colores = lineas.map((x) => x.color)
@@ -100,11 +100,11 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
 
   return (
     <>
-      <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('produccion')}>← Producción</button>
+      {!enVentana && <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('produccion')}>← Producción</button>}
       <div className="d-flex flex-wrap align-items-center gap-3 mb-4">
         {diseno && <FotoMini de={diseno} tam="4.5rem" />}
         <div className="flex-grow-1">
-          <h1 className="fw-bold mb-1">{nombreTanda(tanda)}</h1>
+          {!enVentana && <h1 className="fw-bold mb-1">{nombreTanda(tanda)}</h1>}
           <div className="d-flex flex-wrap align-items-center gap-2 fs-5 text-secondary">
             <span className={`badge text-bg-${ETAPAS_TANDA[etapa - 1].color} fs-6`}>{ETAPAS_TANDA[etapa - 1].icono} {ETAPAS_TANDA[etapa - 1].estado}</span>
             <span className="d-flex gap-1">{colores.map((c) => <Muestra key={c} color={c} />)}</span>
@@ -114,7 +114,8 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
       </div>
 
       <div className="row g-4">
-        <div className="col-lg-4 d-flex flex-column gap-3">
+        {/* En pantallas angostas va primero la acción (columna derecha) y después las etapas */}
+        <div className="col-lg-4 d-flex flex-column gap-3 order-2 order-lg-1">
           <div className="d-flex flex-column gap-2">
             {pasos.map((p) => (
               <div key={p.n} className={'d-flex align-items-center gap-3 p-3 rounded-3 border border-2 bg-white ' + (p.n === etapa ? 'border-warning shadow-sm' : p.n < etapa ? 'border-success-subtle' : 'border-light-subtle')}>
@@ -151,7 +152,7 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
           </div></div>
         </div>
 
-        <div className="col-lg-8 d-flex flex-column gap-3">
+        <div className="col-lg-8 d-flex flex-column gap-3 order-1 order-lg-2">
           {etapa === 1 && (
             <div className="card border-0 shadow-sm"><div className="card-body p-4">
               <h2 className="fw-bold mb-2">🎨 Estampando</h2>

@@ -57,7 +57,7 @@ export function CamposTaller({ datos, valor, onCambio, ir }) {
 export const validarTaller = (v) => (!v.tallerId ? 'Elige a qué taller la mandas.' : !numero(v.precioTaller) ? 'Escribe cuánto cobra el taller por polo.' : '')
 
 // Nueva tanda: un diseño cortado en varios colores, con telas del almacén
-export default function NuevaTanda({ datos, guardar, guardarVarios, ir }) {
+export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentana = false }) {
   const [disenoId, setDisenoId] = useState('')
   const [creandoDiseno, setCreandoDiseno] = useState(false)
   const [usos, setUsos] = useState([]) // [{ telaId, uso }]
@@ -118,8 +118,12 @@ export default function NuevaTanda({ datos, guardar, guardarVarios, ir }) {
 
   return (
     <>
-      <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('produccion')}>← Producción</button>
-      <h1 className="fw-bold mb-1">✂️ Nueva tanda</h1>
+      {!enVentana && (
+        <>
+          <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('produccion')}>← Producción</button>
+          <h1 className="fw-bold mb-1">✂️ Nueva tanda</h1>
+        </>
+      )}
       <p className="fs-5 text-secondary mb-4">Un diseño cortado en uno o varios colores, que va junto al taller.</p>
 
       <div className="row g-4">

@@ -1,7 +1,10 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { ETAPAS_TANDA, etapaTanda, coloresDeTanda, cortadosDeTanda, recibidosDeTanda, stockDeTanda, tallerPorId, disenoPorId, nombreTanda, diasEntre, hoy, fechaCorta } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import { FotoMini } from './Fotos.jsx'
+import Ventana from './Ventana.jsx'
+import NuevaTanda from './NuevaTanda.jsx'
+import TandaDetalle from './TandaDetalle.jsx'
 
 // Las tandas ya vendidas por completo no se muestran: eso se ve en «¿Cómo me va?»
 const COLUMNAS = ETAPAS_TANDA.map((e) => ({ id: e.n, titulo: e.estado, icono: e.icono, color: e.color }))
@@ -37,8 +40,19 @@ function Tarjeta({ t, datos, ir }) {
   )
 }
 
-// Tablero de producción: cada tanda en la columna de su etapa
-export default function Produccion({ datos, ir }) {
+// Tablero de producción: cada tanda en la columna de su etapa.
+// Crear y actualizar tandas se hace en una ventana encima del tablero (`abrir` llega de otras pantallas).
+export default function Produccion(props) {
+  const { datos, ir: irApp, abrir = null } = props
+  const [ventana, setVentana] = useState(abrir) // null | { tipo: 'nueva' } | { tipo: 'tanda', id }
+  // Dentro de la ventana, "ir" a producción la cierra y "ir" a una tanda la cambia
+  const ir = (p, id = null) => {
+    if (p === 'nueva-tanda') setVentana({ tipo: 'nueva' })
+    else if (p === 'tanda') setVentana({ tipo: 'tanda', id })
+    else if (p === 'produccion') setVentana(null)
+    else { setVentana(null); irApp(p, id) }
+  }
+  const tandaAbierta = ventana && ventana.tipo === 'tanda' ? (datos.tandas || []).find((t) => String(t.id) === String(ventana.id)) : null
   const tandas = [...(datos.tandas || [])].sort((a, b) => Number(b.id) - Number(a.id))
   const columna = (t) => (etapaTanda(t) >= 4 && stockDeTanda(t, datos) <= 0 ? 'agotada' : etapaTanda(t))
   const grupos = Object.fromEntries(COLUMNAS.map((c) => [c.id, tandas.filter((t) => columna(t) === c.id)]))
@@ -84,6 +98,17 @@ export default function Produccion({ datos, ir }) {
 
       {lotesAntiguos > 0 && (
         <button className="btn btn-link px-0 mt-3 fs-5" onClick={() => ir('lotes')}>Ver lotes anteriores ({lotesAntiguos}) →</button>
+      )}
+
+      {ventana && ventana.tipo === 'nueva' && (
+        <Ventana titulo="✂️ Nueva tanda" onCerrar={() => setVentana(null)}>
+          <NuevaTanda {...props} ir={ir} enVentana />
+        </Ventana>
+      )}
+      {ventana && ventana.tipo === 'tanda' && (
+        <Ventana titulo={tandaAbierta ? nombreTanda(tandaAbierta) : 'Tanda'} onCerrar={() => setVentana(null)}>
+          <TandaDetalle key={ventana.id} {...props} tandaId={ventana.id} ir={ir} enVentana />
+        </Ventana>
       )}
     </>
   )
