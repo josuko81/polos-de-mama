@@ -1,11 +1,10 @@
 import React, { useState } from 'react'
 import { TALLAS, productos, etapaDe, etapaTanda, cortadosDeTanda, recibidosDeTanda, sumaTallas, fotosDe } from '../calc.js'
-import Muestra from './Muestra.jsx'
 import NuevoDiseno from './NuevoDiseno.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import Fotos, { FotoMini } from './Fotos.jsx'
 
-// Catálogo de diseños: cada uno guarda sus colores y tallas, sumando el stock de todos sus lotes
+// Catálogo de diseños: cada uno suma su stock por talla de todos sus lotes y tandas
 export default function Disenos({ datos, guardar, borrar, ir }) {
   const [creando, setCreando] = useState(false)
   const [editando, setEditando] = useState(null)
@@ -17,7 +16,7 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
         <div>
           <h1 className="fw-bold mb-1">👕 Diseños</h1>
-          <p className="fs-5 text-secondary mb-0">Cada diseño junta sus colores y tallas de todos los lotes.</p>
+          <p className="fs-5 text-secondary mb-0">Cada diseño suma por talla los polos de todas sus tandas.</p>
         </div>
         {!creando && <button className="btn btn-warning btn-lg fw-bold px-4 py-3" onClick={() => setCreando(true)}>＋ Nuevo diseño</button>}
       </div>
@@ -37,7 +36,6 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
       <div className="row g-3">
         {disenos.map((d) => {
           const suyos = prods.filter((p) => String(p.disenoId) === String(d.id))
-          const colores = [...new Set(suyos.map((p) => p.color))]
           const total = suyos.reduce((s, p) => s + p.quedan, 0)
           const lotes = datos.lotes.filter((l) => String(l.disenoId) === String(d.id))
           const tandas = (datos.tandas || []).filter((t) => String(t.disenoId) === String(d.id))
@@ -46,7 +44,8 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
           const empaquetando = lotes.filter((l) => etapaDe(l) === 3).reduce((s, l) => s + (sumaTallas(l.recibidosT) || Number(l.recibidos) || 0), 0)
             + tandas.filter((t) => etapaTanda(t) === 3).reduce((s, t) => s + recibidosDeTanda(t), 0)
           const conFoto = fotosDe(d).length ? d : lotes.find((l) => fotosDe(l).length)
-          const celda = (color, talla) => suyos.filter((p) => p.color === color && p.talla === talla).reduce((s, p) => s + p.quedan, 0)
+          const celda = (talla) => suyos.filter((p) => p.talla === talla).reduce((s, p) => s + p.quedan, 0)
+          const sinTalla = celda('')
           return (
             <div className="col-lg-6" key={d.id}>
               <div className="card border-0 shadow-sm h-100"><div className="card-body p-4">
@@ -70,19 +69,17 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
                   </div>
                 )}
 
-                {colores.length === 0 ? (
+                {total === 0 ? (
                   <div className="text-secondary">Sin polos en stock todavía.</div>
                 ) : (
                   <table className="table align-middle mb-0 text-center">
-                    <thead><tr><th className="text-start">Color</th>{TALLAS.map((t) => <th key={t}>{t}</th>)}<th>Total</th></tr></thead>
+                    <thead><tr>{TALLAS.map((t) => <th key={t}>{t}</th>)}{sinTalla > 0 && <th>Sin talla</th>}<th>Total</th></tr></thead>
                     <tbody>
-                      {colores.map((c) => (
-                        <tr key={c}>
-                          <td className="text-start text-capitalize"><span className="d-inline-flex align-items-center gap-2"><Muestra color={c} />{c}</span></td>
-                          {TALLAS.map((t) => <td key={t} className={'fs-5 ' + (celda(c, t) ? 'fw-bold' : 'text-secondary')}>{celda(c, t) || '–'}</td>)}
-                          <td className="fw-bold">{suyos.filter((p) => p.color === c).reduce((s, p) => s + p.quedan, 0)}</td>
-                        </tr>
-                      ))}
+                      <tr>
+                        {TALLAS.map((t) => <td key={t} className={'fs-4 ' + (celda(t) ? 'fw-bold' : 'text-secondary')}>{celda(t) || '–'}</td>)}
+                        {sinTalla > 0 && <td className="fs-4 fw-bold">{sinTalla}</td>}
+                        <td className="fs-4 fw-bold text-marca">{total}</td>
+                      </tr>
                     </tbody>
                   </table>
                 )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { ETAPAS_TANDA, etapaTanda, coloresDeTanda, cortadosDeTanda, recibidosDeTanda, stockDeTanda, tallerPorId, disenoPorId, nombreTanda, diasEntre, hoy, fechaCorta } from '../calc.js'
+import { ETAPAS_TANDA, etapaTanda, coloresDeTelas, cortadosDeTanda, recibidosDeTanda, stockDeTanda, tallerPorId, disenoPorId, nombreTanda, diasEntre, hoy, fechaCorta } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import { FotoMini } from './Fotos.jsx'
 import Ventana from './Ventana.jsx'
@@ -25,7 +25,7 @@ function Tarjeta({ t, datos, ir }) {
           <div className="flex-grow-1">
             <div className="small text-secondary">Cortada el {fechaCorta(t.fecha)}</div>
             <div className="fs-5 fw-bold">{nombreTanda(t)}</div>
-            <div className="d-flex flex-wrap gap-1 mt-1">{coloresDeTanda(t).map((c, i) => <Muestra key={i} color={c.color} tam="1rem" />)}</div>
+            <div className="d-flex flex-wrap gap-1 mt-1">{coloresDeTelas(t, datos).map((c) => <Muestra key={c} color={c} tam="1rem" />)}</div>
           </div>
         </div>
         {e <= 2 && fila('Polos', cortadosDeTanda(t))}

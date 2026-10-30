@@ -17,18 +17,18 @@ export default function Resumen({ datos, guardarVarios, borrar, borrarVarios }) 
   const [mes, setMes] = useState(mesDe(hoy()))
   const r = resumenMes(datos, mes)
   const deben = pedidos(datos.ventas, datos).filter((p) => !p.pagado)
-  // Lo más vendido del mes (diseño + color) y lo vendido por canal
+  // Lo más vendido del mes (diseño + talla) y lo vendido por canal
   const masVendido = Object.values(r.ventas.reduce((m, v) => {
-    const k = `${nombreVenta(v, datos.lotes)}|${v.color || ''}`
-    m[k] = m[k] || { nombre: nombreVenta(v, datos.lotes), color: v.color || '', cantidad: 0 }
+    const k = `${nombreVenta(v, datos.lotes)}|${v.talla || ''}`
+    m[k] = m[k] || { nombre: `${nombreVenta(v, datos.lotes)} ${v.talla || ''}`.trim(), cantidad: 0 }
     m[k].cantidad += Number(v.cantidad) || 0
     return m
   }, {})).sort((a, b) => b.cantidad - a.cantidad).slice(0, 5)
   const porCanal = CANALES.map((c) => ({ ...c, total: r.ventas.filter((v) => v.canal === c.id).reduce((s, v) => s + totalVenta(v), 0) }))
   const sinCanal = r.ventas.filter((v) => !v.canal).reduce((s, v) => s + totalVenta(v), 0)
-  // Stock sumado por diseño + color + talla, ordenado para leerlo fácil
+  // Stock sumado por diseño + talla, ordenado para leerlo fácil
   const orden = (t) => (TALLAS.indexOf(t) < 0 ? 99 : TALLAS.indexOf(t))
-  const stock = productos(datos).sort((a, b) => a.nombre.localeCompare(b.nombre) || a.color.localeCompare(b.color) || orden(a.talla) - orden(b.talla))
+  const stock = productos(datos).sort((a, b) => a.nombre.localeCompare(b.nombre) || orden(a.talla) - orden(b.talla))
   const enTaller = datos.lotes.filter((l) => etapaDe(l) > 0 && etapaDe(l) < LISTO)
   const titulo = `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}`
 
@@ -105,7 +105,7 @@ export default function Resumen({ datos, guardarVarios, borrar, borrarVarios }) 
                 {masVendido.length === 0 && <div className="text-secondary">Sin ventas este mes.</div>}
                 {masVendido.map((x, i) => (
                   <div key={i} className="d-flex justify-content-between align-items-center py-1">
-                    <span className="d-inline-flex align-items-center gap-2">{i + 1}. <Muestra color={x.color} />{x.nombre}{x.nombre.toLowerCase().includes(x.color) ? '' : ` ${x.color}`}</span>
+                    <span>{i + 1}. {x.nombre}</span>
                     <b>{x.cantidad}</b>
                   </div>
                 ))}
@@ -128,7 +128,7 @@ export default function Resumen({ datos, guardarVarios, borrar, borrarVarios }) 
               <tbody>
                 {stock.map((s) => (
                   <tr key={s.clave}>
-                    <td><span className="d-inline-flex align-items-center gap-2"><Muestra color={s.color} />{s.nombre} {s.color}</span>
+                    <td>{s.nombre}
                       {s.talla && <span className="badge text-bg-light border ms-2">{s.talla}</span>}</td>
                     <td className="text-end fw-bold fs-5">{s.quedan}</td>
                   </tr>
@@ -143,7 +143,7 @@ export default function Resumen({ datos, guardarVarios, borrar, borrarVarios }) 
                 ))}
                 {(datos.tandas || []).filter((t) => etapaTanda(t) < 4).map((t) => (
                   <tr key={'tanda' + t.id}>
-                    <td>{nombreTanda(t)} <span className="small text-secondary">· {coloresDeTanda(t).length} colores</span></td>
+                    <td>{nombreTanda(t)}</td>
                     <td className="text-end">{etapaTanda(t) === 3
                       ? <span className="badge text-bg-primary">empaquetando ({recibidosDeTanda(t)})</span>
                       : <span className="badge text-bg-warning">{etapaTanda(t) === 1 ? 'estampando' : 'en el taller'} ({cortadosDeTanda(t)})</span>}</td>

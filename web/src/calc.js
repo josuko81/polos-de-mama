@@ -107,7 +107,7 @@ export const textoTallas = (o) => {
 
 // Antes de cortar, el lote se llama por su tela; después, por su diseño y color
 export const nombreLote = (l) => {
-  if (l.disenoId && nombreDiseno(l.disenoId)) return `${nombreDiseno(l.disenoId)} ${l.color || ''}`.trim()
+  if (l.disenoId && nombreDiseno(l.disenoId)) return nombreDiseno(l.disenoId)
   return l.modelo ? [l.modelo, l.color].filter(Boolean).join(' ') : `Tela ${l.color || ''}`.trim()
 }
 
@@ -167,6 +167,9 @@ export function piezasDeTanda(t, datos) {
     }
   })
 }
+// Colores de las telas que usó una tanda (solo para reconocerla; el stock no los usa)
+export const coloresDeTelas = (t, datos) =>
+  [...new Set(coloresDeTanda(t).flatMap((c) => (c.telas || []).map((u) => (telaPorId(datos, u.telaId) || {}).color || c.color)).filter(Boolean))]
 export const nombreTanda = (t) => `Tanda ${t.id}${nombreDiseno(t.disenoId) ? ' · ' + nombreDiseno(t.disenoId) : ''}`
 
 // Tandas pendientes en cada taller, para el panel de Inicio
@@ -191,11 +194,11 @@ export function pendientesPorTaller(datos) {
 }
 
 // ---------- Stock ----------
-// Un "producto" es diseño + color + talla. Si varios lotes tienen el mismo producto, su stock se suma.
+// Un "producto" es diseño + talla. Si varios lotes o tandas tienen el mismo producto, su stock se suma.
 // Al vender se descuenta primero del lote más antiguo, así el costo de cada venta sale de su lote real.
 const baseDeLote = (l) => (l.disenoId ? 'd:' + l.disenoId : 'm:' + (l.modelo || ''))
 const baseDeVenta = (v) => (v.disenoId ? 'd:' + v.disenoId : null)
-const colorNorm = (c) => String(c || '').trim().toLowerCase()
+// El color solo se usa en las telas del almacén: los polos se cuentan por diseño y talla
 
 // Polos que entraron a stock de un lote, por talla. Los lotes antiguos sin tallas usan '' (sin talla).
 const unidadesLote = (l) => {
@@ -233,7 +236,7 @@ export function inventario(datos) {
       if (restante[viejo.id]) sacar(viejo, v.talla, falta)
       costo = falta * (costoPorPolo(viejo) || 0)
     } else {
-      const candidatos = lotes.filter((l) => baseDeLote(l) === baseDeVenta(v) && colorNorm(l.color) === colorNorm(v.color))
+      const candidatos = lotes.filter((l) => baseDeLote(l) === baseDeVenta(v))
       for (const l of candidatos) {
         if (!falta) break
         const n = sacar(l, v.talla, falta)
@@ -259,18 +262,18 @@ export const stockPorTallaDeLote = (l, datos) => inventario(datos).restante[l.id
 export const stockDeTanda = (t, datos) => piezasDeTanda(t, datos).reduce((s, p) => s + stockDeLote(p, datos), 0)
 export const vendidosDeLote = (l, datos) => (etapaDe(l) >= LISTO ? num(l.recibidos) - stockDeLote(l, datos) : 0)
 
-// Productos con stock (diseño + color + talla), sumando todos sus lotes, del más antiguo al más nuevo
+// Productos con stock (diseño + talla), sumando todos sus lotes, del más antiguo al más nuevo
 export function productos(datos) {
   const { lotes, restante } = inventario(datos)
   const mapa = new Map()
   lotes.forEach((l) => {
     Object.entries(restante[l.id]).forEach(([talla, n]) => {
       if (n <= 0) return
-      const clave = `${baseDeLote(l)}|${colorNorm(l.color)}|${talla}`
+      const clave = `${baseDeLote(l)}|${talla}`
       if (!mapa.has(clave)) {
         mapa.set(clave, {
           clave, base: baseDeLote(l), disenoId: l.disenoId || '', modelo: l.modelo || '',
-          nombre: l.disenoId ? nombreDiseno(l.disenoId) : l.modelo || 'Polo', color: colorNorm(l.color), talla, quedan: 0, lotes: [],
+          nombre: l.disenoId ? nombreDiseno(l.disenoId) : l.modelo || 'Polo', talla, quedan: 0, lotes: [],
         })
       }
       const p = mapa.get(clave)
@@ -296,7 +299,7 @@ export function costoEstimado(producto, cantidad) {
 }
 
 export const nombreVenta = (v, lotes) => {
-  if (v.disenoId) return `${nombreDiseno(v.disenoId) || 'Polo'} ${v.color || ''}`.trim()
+  if (v.disenoId) return nombreDiseno(v.disenoId) || 'Polo'
   const l = lotes.find((x) => String(x.id) === String(v.loteId))
   return l ? nombreLote(l) : 'polo'
 }

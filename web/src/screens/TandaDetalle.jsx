@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import {
   TALLAS, ETAPAS_TANDA, etapaTanda, coloresDeTanda, cortadosDeTanda, piezasDeTanda, costoPorPolo, stockPorTallaDeLote, stockDeLote,
-  tallerPorId, telaPorId, fraccionUsada, disenoPorId, nombreTanda, leerTallas, sumaTallas, diasEntre, hoy, soles, fechaCorta,
+  tallerPorId, telaPorId, fraccionUsada, coloresDeTelas, disenoPorId, nombreTanda, leerTallas, sumaTallas, diasEntre, hoy, soles, fechaCorta,
 } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
@@ -18,11 +18,11 @@ function TablaTallas({ colores, valores, onCambio, prefijo }) {
   return (
     <div className="table-responsive">
       <table className="table align-middle mb-0 tabla-tallas">
-        <thead><tr><th>Color</th>{TALLAS.map((t) => <th key={t} className="text-center">{t}</th>)}<th className="text-end">Total</th></tr></thead>
+        <thead><tr><th />{TALLAS.map((t) => <th key={t} className="text-center">{t}</th>)}<th className="text-end">Total</th></tr></thead>
         <tbody>
           {colores.map((c) => (
             <tr key={c}>
-              <td className="text-capitalize"><span className="d-inline-flex align-items-center gap-2"><Muestra color={c} />{c}</span></td>
+              <td className="text-capitalize"><span className="d-inline-flex align-items-center gap-2"><Muestra color={c} />{c || 'Polos'}</span></td>
               {TALLAS.map((t) => (
                 <td key={t}>
                   <input id={`${prefijo}-${c}-${t}`} className="form-control form-control-lg text-center" inputMode="numeric" placeholder="0"
@@ -77,13 +77,13 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
   }
   const recoger = () => {
     const vacio = colores.find((c) => !sumaTallas(aNumeros(recibidos[c])))
-    if (vacio) return setError(`Pon cuántos llegaron de ${vacio}.`)
+    if (vacio !== undefined) return setError(`Pon cuántos llegaron${vacio ? ` de ${vacio}` : ' de cada talla'}.`)
     const nuevas = lineas.map((x) => ({ ...x, recibidosT: aNumeros(recibidos[x.color]) }))
     accion({ etapa: 3, fechaRecojo, otros: numero(otros), pagado: true, colores: JSON.stringify(nuevas) }, `Recogido: ${totalRecibido} polos`)
   }
   const guardarCorte = async () => {
     const vacio = colores.find((c) => !sumaTallas(aNumeros(cortados[c])))
-    if (vacio) return setError(`Pon cuántos cortaste de ${vacio}.`)
+    if (vacio !== undefined) return setError(`Pon cuántos cortaste${vacio ? ` de ${vacio}` : ' de cada talla'}.`)
     const nuevas = lineas.map((x) => ({ ...x, cortadosT: aNumeros(cortados[x.color]) }))
     await accion({ colores: JSON.stringify(nuevas) }, 'Cantidades corregidas')
     setCorrigiendo(false)
@@ -107,7 +107,7 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
           {!enVentana && <h1 className="fw-bold mb-1">{nombreTanda(tanda)}</h1>}
           <div className="d-flex flex-wrap align-items-center gap-2 fs-5 text-secondary">
             <span className={`badge text-bg-${ETAPAS_TANDA[etapa - 1].color} fs-6`}>{ETAPAS_TANDA[etapa - 1].icono} {ETAPAS_TANDA[etapa - 1].estado}</span>
-            <span className="d-flex gap-1">{colores.map((c) => <Muestra key={c} color={c} />)}</span>
+            <span className="d-flex gap-1" title="Colores de las telas">{coloresDeTelas(tanda, datos).map((c) => <Muestra key={c} color={c} />)}</span>
             <span>{totalCortado} polos · cortada el {fechaCorta(tanda.fecha)}</span>
           </div>
         </div>
@@ -144,7 +144,7 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
               const te = telaPorId(datos, u.telaId)
               return (
                 <div key={x.color + i} className="d-flex justify-content-between small">
-                  <span className="d-inline-flex align-items-center gap-1"><Muestra color={x.color} tam="0.9rem" /><span className="text-capitalize">{x.color}</span> · {u.fraccion >= 0.999 ? 'toda' : u.fraccion === 0.5 ? 'la mitad' : `${Math.round(u.fraccion * 100)}%`}</span>
+                  <span className="d-inline-flex align-items-center gap-1"><Muestra color={te ? te.color : x.color} tam="0.9rem" /><span className="text-capitalize">{te ? te.color : x.color}</span> · {u.fraccion >= 0.999 ? 'toda' : u.fraccion === 0.5 ? 'la mitad' : `${Math.round(u.fraccion * 100)}%`}</span>
                   <span>{te ? `${te.kilos} kg · ${fechaCorta(te.fecha)}` : '—'}</span>
                 </div>
               )
@@ -210,14 +210,14 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
               </>
             ) : (
               <table className="table align-middle mb-0 text-center">
-                <thead><tr><th className="text-start">Color</th>{TALLAS.map((t) => <th key={t}>{t}</th>)}<th>Total</th>{etapa >= 3 && <th>Cada polo</th>}</tr></thead>
+                <thead><tr><th className="text-start" />{TALLAS.map((t) => <th key={t}>{t}</th>)}<th>Total</th>{etapa >= 3 && <th>Cada polo</th>}</tr></thead>
                 <tbody>
                   {lineas.map((x, i) => {
                     const cant = etapa >= 4 ? stockPorTallaDeLote(piezas[i], datos) : leerTallas(etapa >= 3 ? x.recibidosT : x.cortadosT)
                     const tot = etapa >= 4 ? stockDeLote(piezas[i], datos) : sumaTallas(cant)
                     return (
                       <tr key={x.color}>
-                        <td className="text-start text-capitalize"><span className="d-inline-flex align-items-center gap-2"><Muestra color={x.color} />{x.color}</span></td>
+                        <td className="text-start text-capitalize"><span className="d-inline-flex align-items-center gap-2"><Muestra color={x.color} />{x.color || 'Polos'}</span></td>
                         {TALLAS.map((t) => <td key={t} className="fs-5">{cant[t] || '–'}</td>)}
                         <td className="fw-bold fs-5">{tot}</td>
                         {etapa >= 3 && <td>{costoPorPolo(piezas[i]) !== null ? soles(costoPorPolo(piezas[i])) : '—'}</td>}

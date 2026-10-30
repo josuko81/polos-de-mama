@@ -65,12 +65,12 @@ export function CamposTaller({ datos, guardar, valor, onCambio }) {
 
 export const validarTaller = (v) => (!v.tallerId ? 'Elige a qué taller la mandas.' : !numero(v.precioTaller) ? 'Escribe cuánto cobra el taller por polo.' : '')
 
-// Nueva tanda: un diseño cortado en varios colores, con telas del almacén
+// Nueva tanda: un diseño cortado con una o varias telas del almacén, contado por talla
 export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentana = false }) {
   const [disenoId, setDisenoId] = useState('')
   const [creandoDiseno, setCreandoDiseno] = useState(false)
   const [usos, setUsos] = useState([]) // [{ telaId, uso }]
-  const [cortados, setCortados] = useState({}) // { color: { M: '20', ... } }
+  const [cortados, setCortados] = useState({}) // { M: '20', Estándar: '15', L: '10' }
   const [taller, setTaller] = useState({})
   const [fecha, setFecha] = useState(hoy())
   const [guardando, setGuardando] = useState(false)
@@ -80,10 +80,10 @@ export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentan
   const estampado = diseno && diseno.tipo === 'Con estampado'
   const disponibles = (datos.telas || []).filter((t) => telaDisponible(t, datos)).sort((a, b) => String(a.color).localeCompare(String(b.color)) || String(a.fecha).localeCompare(String(b.fecha)))
   const telaDe = (id) => (datos.telas || []).find((t) => String(t.id) === String(id))
+  // Colores de las telas elegidas: solo para reconocerlas, los polos se cuentan por talla
   const colores = [...new Set(usos.map((u) => String(telaDe(u.telaId).color).toLowerCase()))]
   const queda = (t) => 1 - fraccionUsada(t, datos)
-  const totalColor = (c) => TALLAS.reduce((s, t) => s + numero((cortados[c] || {})[t]), 0)
-  const total = colores.reduce((s, c) => s + totalColor(c), 0)
+  const total = TALLAS.reduce((s, t) => s + numero(cortados[t]), 0)
 
   const alternar = (t) => {
     if (usos.some((u) => String(u.telaId) === String(t.id))) setUsos(usos.filter((u) => String(u.telaId) !== String(t.id)))
@@ -99,14 +99,14 @@ export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentan
     setError('')
     if (!diseno) return setError('Elige el diseño que cortaste.')
     if (!usos.length) return setError('Elige qué telas usaste.')
-    const sinCantidad = colores.find((c) => !totalColor(c))
-    if (sinCantidad) return setError(`Pon cuántos cortaste de ${sinCantidad}.`)
+    if (!total) return setError('Pon cuántos cortaste de cada talla.')
     if (!estampado) { const e = validarTaller(taller); if (e) return setError(e) }
-    const lineas = colores.map((c) => ({
-      color: c,
-      telas: usos.filter((u) => String(telaDe(u.telaId).color).toLowerCase() === c).map((u) => ({ telaId: u.telaId, fraccion: Math.round(fraccion(u) * 1000) / 1000 })),
-      cortadosT: leerTallas(Object.fromEntries(TALLAS.map((t) => [t, numero((cortados[c] || {})[t])]))),
-    }))
+    // Una sola línea con todas las telas: el costo de la tela se reparte entre todos los polos de la tanda
+    const lineas = [{
+      color: '',
+      telas: usos.map((u) => ({ telaId: u.telaId, fraccion: Math.round(fraccion(u) * 1000) / 1000 })),
+      cortadosT: leerTallas(Object.fromEntries(TALLAS.map((t) => [t, numero(cortados[t])]))),
+    }]
     const tanda = {
       fecha, disenoId: diseno.id, etapa: estampado ? 1 : 2, otros: 0, pagado: false, colores: JSON.stringify(lineas),
       ...(estampado ? {} : { tallerId: taller.tallerId, precioTaller: numero(taller.precioTaller), fechaEnvio: fecha, fechaEstimada: taller.fechaEstimada || '' }),
@@ -133,7 +133,7 @@ export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentan
           <h1 className="fw-bold mb-1">✂️ Nueva tanda</h1>
         </>
       )}
-      <p className="fs-5 text-secondary mb-4">Un diseño cortado en uno o varios colores, que va junto al taller.</p>
+      <p className="fs-5 text-secondary mb-4">Un diseño cortado con una o varias telas, que va junto al taller.</p>
 
       <div className="row g-4">
         <div className="col-lg-8 d-flex flex-column gap-3">
@@ -194,29 +194,19 @@ export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentan
             </div>
           </div></div>
 
-          {colores.length > 0 && (
+          {usos.length > 0 && (
             <div className="card border-0 shadow-sm"><div className="card-body p-4">
-              <div className="fs-5 fw-bold mb-3">3. ¿Cuántos cortaste de cada color y talla?</div>
-              <div className="table-responsive">
-                <table className="table align-middle mb-0 tabla-tallas">
-                  <thead><tr><th>Color</th>{TALLAS.map((t) => <th key={t} className="text-center">{t}</th>)}<th className="text-end">Total</th></tr></thead>
-                  <tbody>
-                    {colores.map((c) => (
-                      <tr key={c}>
-                        <td className="text-capitalize"><span className="d-inline-flex align-items-center gap-2"><Muestra color={c} />{c}</span></td>
-                        {TALLAS.map((t) => (
-                          <td key={t}>
-                            <input id={`corte-${c}-${t}`} className="form-control form-control-lg text-center" inputMode="numeric" placeholder="0"
-                              value={(cortados[c] || {})[t] ?? ''}
-                              onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setCortados((x) => ({ ...x, [c]: { ...(x[c] || {}), [t]: v } })) }} />
-                          </td>
-                        ))}
-                        <td className="text-end fw-bold fs-5">{totalColor(c)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot><tr><td colSpan={TALLAS.length + 1} className="fw-bold">Total de la tanda</td><td className="text-end fw-bold fs-4">{total}</td></tr></tfoot>
-                </table>
+              <div className="fs-5 fw-bold mb-3">3. ¿Cuántos cortaste de cada talla?</div>
+              <div className="row g-3 align-items-end">
+                {TALLAS.map((t) => (
+                  <div className="col-4 col-md-3" key={t}>
+                    <label htmlFor={`corte-${t}`} className="fw-bold d-block text-center mb-1">{t}</label>
+                    <input id={`corte-${t}`} className="form-control form-control-lg text-center fs-4" inputMode="numeric" placeholder="0"
+                      value={cortados[t] ?? ''}
+                      onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setCortados((x) => ({ ...x, [t]: v })) }} />
+                  </div>
+                ))}
+                <div className="col-12 col-md-3 text-md-end fs-5">Total: <b className="fs-3">{total}</b> polos</div>
               </div>
             </div></div>
           )}
@@ -237,7 +227,7 @@ export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentan
             <div className="fw-bold text-secondary">Esta tanda</div>
             <div className="fs-4 fw-bold">{diseno ? diseno.nombre : '—'}</div>
             <div className="d-flex flex-wrap gap-1 my-2">{colores.map((c) => <Muestra key={c} color={c} tam="1.4rem" />)}</div>
-            <div className="d-flex justify-content-between fs-5"><span>Colores</span><b>{colores.length}</b></div>
+            <div className="d-flex justify-content-between fs-5"><span>Telas</span><b>{usos.length}</b></div>
             <div className="d-flex justify-content-between fs-5"><span>Polos cortados</span><b>{total}</b></div>
             {!estampado && numero(taller.precioTaller) > 0 && total > 0 && (
               <div className="d-flex justify-content-between"><span>Al recoger pagarás</span><b>{soles(total * numero(taller.precioTaller))}</b></div>

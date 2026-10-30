@@ -1,21 +1,18 @@
 import React, { useState } from 'react'
 import { productos, costoEstimado, disenoPorId, fotosDe, soles, TALLAS, PRECIOS, CANALES, hoy } from '../calc.js'
-import Muestra from './Muestra.jsx'
 import { FotoMini } from './Fotos.jsx'
 import { FormCliente } from './Clientes.jsx'
 
 const precioDe = (t) => (PRECIOS[t] ? String(PRECIOS[t]) : '')
 
-// Una venta puede llevar varios productos (diseño + color + talla). El stock ya viene sumado de todos los lotes.
+// Una venta puede llevar varios productos (diseño + talla). El stock ya viene sumado de todos los lotes y tandas.
 export default function Vendi({ datos, guardar, guardarVarios, ir }) {
   const prods = productos(datos)
   const bases = [...new Map(prods.map((p) => [p.base, p])).values()]
-  const coloresDe = (b) => [...new Set(prods.filter((p) => p.base === b).map((p) => p.color))]
-  const primeraTalla = (b, c) => TALLAS.find((t) => prods.some((x) => x.base === b && x.color === c && (x.talla === t || x.talla === ''))) || TALLAS[0]
+  const primeraTalla = (b) => TALLAS.find((t) => prods.some((x) => x.base === b && (x.talla === t || x.talla === ''))) || TALLAS[0]
 
   const [base, setBase] = useState(bases[0] ? bases[0].base : null)
-  const [color, setColor] = useState(bases[0] ? coloresDe(bases[0].base)[0] : null)
-  const [talla, setTalla] = useState(() => (bases[0] ? primeraTalla(bases[0].base, coloresDe(bases[0].base)[0]) : TALLAS[0]))
+  const [talla, setTalla] = useState(() => (bases[0] ? primeraTalla(bases[0].base) : TALLAS[0]))
   const [cantidad, setCantidad] = useState(1)
   const [precio, setPrecio] = useState(() => precioDe(talla))
   const [pedido, setPedido] = useState([]) // productos ya agregados a esta venta
@@ -27,10 +24,10 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
-  // Producto de cada talla del color elegido. Los lotes antiguos sin tallas sirven para cualquier talla.
-  const delColor = prods.filter((p) => p.base === base && p.color === color)
-  const sinTalla = delColor.find((p) => p.talla === '')
-  const productoDe = (t) => sinTalla || delColor.find((p) => p.talla === t) || null
+  // Producto de cada talla del diseño elegido. Los lotes antiguos sin tallas sirven para cualquier talla.
+  const delDiseno = prods.filter((p) => p.base === base)
+  const sinTalla = delDiseno.find((p) => p.talla === '')
+  const productoDe = (t) => sinTalla || delDiseno.find((p) => p.talla === t) || null
   // Lo que queda descontando lo ya agregado a este pedido
   const yaEnPedido = (p) => pedido.filter((x) => x.producto.clave === p.clave).reduce((s, x) => s + x.cantidad, 0)
   const quedanDe = (p) => (p ? p.quedan - yaEnPedido(p) : 0)
@@ -38,8 +35,7 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
   const p = Number(String(precio).replace(',', '.')) || 0
 
   const elegirTalla = (t) => { setTalla(t); setPrecio(precioDe(t)) }
-  const elegirColor = (c) => { setColor(c); elegirTalla(primeraTalla(base, c)) }
-  const elegirBase = (b) => { const c = coloresDe(b)[0]; setBase(b); setColor(c); elegirTalla(primeraTalla(b, c)) }
+  const elegirBase = (b) => { setBase(b); elegirTalla(primeraTalla(b)) }
 
   // Valida lo elegido arriba y lo devuelve como línea del pedido (o null con error)
   const lineaActual = () => {
@@ -73,7 +69,7 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
     const pedidoId = 'P' + Date.now().toString(36)
     const filas = lineas.map((x) => ({
       fecha, pedidoId, clienteId: cliente ? cliente.id : '', cliente: cliente ? cliente.nombre : '', canal, pagado,
-      color: x.producto.color, talla: x.talla, cantidad: x.cantidad, precio: x.precio,
+      talla: x.talla, cantidad: x.cantidad, precio: x.precio,
       ...(x.producto.disenoId ? { disenoId: x.producto.disenoId } : { loteId: x.producto.lotes[0].lote.id }),
     }))
     const monto = filas.reduce((s, f) => s + f.cantidad * f.precio, 0)
@@ -108,7 +104,6 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
   }
   const cuelloBase = (b) => (b.disenoId ? (disenoPorId(b.disenoId) || {}).cuello : 'Sin diseño')
   const quedanBase = (b) => prods.filter((x) => x.base === b).reduce((s, x) => s + quedanDe(x), 0)
-  const quedanColor = (c) => prods.filter((x) => x.base === base && x.color === c).reduce((s, x) => s + quedanDe(x), 0)
 
   return (
     <div className="row g-4">
@@ -137,22 +132,10 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
           </div>
         </div></div>
 
-        <div className="card border-0 shadow-sm mb-3"><div className="card-body p-4">
-          <div className="fs-5 fw-bold mb-3">2. ¿Qué color?</div>
-          <div className="d-flex flex-wrap gap-2">
-            {coloresDe(base).map((c) => (
-              <button key={c} className={'btn btn-outline-secondary opcion d-flex align-items-center gap-2 px-3 py-2 ' + (c === color ? 'active' : '')} onClick={() => elegirColor(c)}>
-                <Muestra color={c} tam="1.8rem" />
-                <span className="text-start"><span className="d-block fw-bold text-capitalize">{c}</span><span className="d-block small">quedan {quedanColor(c)}</span></span>
-              </button>
-            ))}
-          </div>
-        </div></div>
-
         <div className="card border-0 shadow-sm"><div className="card-body p-4">
           <div className="row g-4">
             <div className="col-md-6">
-              <div className="fs-5 fw-bold mb-3">3. ¿Qué talla?</div>
+              <div className="fs-5 fw-bold mb-3">2. ¿Qué talla?</div>
               <div className="d-flex flex-wrap gap-2">
                 {TALLAS.map((t) => {
                   const n = quedanDe(productoDe(t))
@@ -168,7 +151,7 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
             <div className="col-md-6">
               <div className="row g-3">
                 <div className="col-6 col-md-12 col-xl-6">
-                  <div className="fs-5 fw-bold mb-2">4. ¿Cuántos?</div>
+                  <div className="fs-5 fw-bold mb-2">3. ¿Cuántos?</div>
                   <div className="input-group input-group-lg">
                     <button className="btn btn-outline-secondary px-3 fw-bold" onClick={() => setCantidad(Math.max(1, cantidad - 1))}>−</button>
                     <input id="cantidad" className="form-control text-center fw-bold fs-4" inputMode="numeric" value={cantidad}
@@ -177,7 +160,7 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
                   </div>
                 </div>
                 <div className="col-6 col-md-12 col-xl-6">
-                  <label htmlFor="precio" className="fs-5 fw-bold mb-2">5. ¿A cuánto c/u?</label>
+                  <label htmlFor="precio" className="fs-5 fw-bold mb-2">4. ¿A cuánto c/u?</label>
                   <div className="input-group input-group-lg">
                     <span className="input-group-text">S/</span>
                     <input id="precio" className="form-control fs-4" inputMode="decimal" placeholder="0.00" value={precio} onChange={(e) => setPrecio(e.target.value)} />
@@ -188,9 +171,9 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
             </div>
           </div>
           <button className="btn btn-warning btn-lg fw-bold w-100 mt-4 py-3" onClick={agregar}>
-            ＋ Agregar al pedido: {cantidad} × {sel ? sel.nombre : ''} {color} ({talla})
+            ＋ Agregar al pedido: {cantidad} × {sel ? sel.nombre : ''} ({talla})
           </button>
-          <div className="form-text text-center">¿Lleva más colores o tallas? Agrégalos uno por uno y guarda al final.</div>
+          <div className="form-text text-center">¿Lleva más diseños o tallas? Agrégalos uno por uno y guarda al final.</div>
         </div></div>
       </div>
 
@@ -201,9 +184,8 @@ export default function Vendi({ datos, guardar, guardarVarios, ir }) {
           <div className="d-flex flex-column gap-2">
             {pedido.map((x, i) => (
               <div key={i} className="d-flex align-items-center gap-2 border rounded-3 p-2">
-                <Muestra color={x.producto.color} tam="1.4rem" />
                 <div className="flex-grow-1">
-                  <div className="fw-bold">{x.cantidad} × {x.producto.nombre} <span className="text-capitalize">{x.producto.color}</span></div>
+                  <div className="fw-bold">{x.cantidad} × {x.producto.nombre}</div>
                   <div className="small text-secondary">Talla {x.talla} · {soles(x.precio)} c/u</div>
                 </div>
                 <b>{soles(x.cantidad * x.precio)}</b>
