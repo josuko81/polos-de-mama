@@ -157,7 +157,7 @@ export default function TandaDetalle({ datos, tandaId, guardar, guardarVarios, b
             <div className="card border-0 shadow-sm"><div className="card-body p-4">
               <h2 className="fw-bold mb-2">🎨 Estampando</h2>
               <p className="fs-5">Cuando terminen de estampar, elige el taller y mándala.</p>
-              <CamposTaller datos={datos} valor={taller} onCambio={setTaller} ir={ir} />
+              <CamposTaller datos={datos} guardar={guardar} valor={taller} onCambio={setTaller} />
               {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
               <button className="btn btn-marca btn-lg py-3 px-5 fs-4 mt-4" disabled={guardando} onClick={mandarAlTaller}>Listo: estampé y mandé al taller</button>
             </div></div>

@@ -9,7 +9,6 @@ import CompraTela from './screens/CompraTela.jsx'
 import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
 import Tela from './screens/Tela.jsx'
-import Talleres from './screens/Talleres.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
@@ -119,7 +118,7 @@ export default function App() {
         {datos && pantalla === 'tanda' && <Produccion key={'tanda' + loteId} {...props} abrir={{ tipo: 'tanda', id: loteId }} />}
         {datos && pantalla === 'tela' && <Tela {...props} />}
         {datos && pantalla === 'compra-tela' && <CompraTela {...props} />}
-        {datos && pantalla === 'talleres' && <Talleres {...props} />}
+        {datos && pantalla === 'talleres' && <Produccion key="talleres" {...props} abrir={{ tipo: 'talleres' }} />}
       </main>
 
       {aviso && <div className="alert alert-success shadow aviso fs-5 text-center">✅ {aviso}</div>}

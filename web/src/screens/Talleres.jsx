@@ -48,7 +48,7 @@ export function PanelTalleres({ datos, ir }) {
   )
 }
 
-function FormTaller({ datos, guardar, taller, onListo }) {
+export function FormTaller({ datos, guardar, taller, onListo, onCreado }) {
   const [nombre, setNombre] = useState(taller ? taller.nombre : '')
   const [telefono, setTelefono] = useState(taller ? taller.telefono || '' : '')
   const [precio, setPrecio] = useState(taller ? String(taller.precio || '') : '')
@@ -64,7 +64,8 @@ function FormTaller({ datos, guardar, taller, onListo }) {
     }
     setGuardando(true)
     try {
-      await guardar('talleres', { ...(taller ? { id: taller.id } : {}), nombre: n, telefono: telefono.trim(), precio: numero(precio) }, taller ? 'Taller actualizado' : `Taller «${n}» agregado`)
+      const id = await guardar('talleres', { ...(taller ? { id: taller.id } : {}), nombre: n, telefono: telefono.trim(), precio: numero(precio) }, taller ? 'Taller actualizado' : `Taller «${n}» agregado`)
+      if (onCreado) onCreado({ id, nombre: n, precio: numero(precio) })
       onListo()
     } catch (e) {
       setError('No se pudo guardar. Revisa el internet y vuelve a intentar.')
@@ -101,7 +102,7 @@ function FormTaller({ datos, guardar, taller, onListo }) {
 }
 
 // Lista de talleres: precio, teléfono y cuánto suelen demorar
-export default function Talleres({ datos, guardar, borrar, ir }) {
+export default function Talleres({ datos, guardar, borrar, ir, enVentana = false }) {
   const [creando, setCreando] = useState(false)
   const [editando, setEditando] = useState(null)
   const filas = pendientesPorTaller(datos)
@@ -109,9 +110,9 @@ export default function Talleres({ datos, guardar, borrar, ir }) {
 
   return (
     <>
-      <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('produccion')}>← Producción</button>
-      <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <h1 className="fw-bold mb-0">🏭 Talleres</h1>
+      {!enVentana && <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('produccion')}>← Producción</button>}
+      <div className={'d-flex flex-wrap align-items-center gap-3 mb-4 ' + (enVentana ? 'justify-content-end' : 'justify-content-between')}>
+        {!enVentana && <h1 className="fw-bold mb-0">🏭 Talleres</h1>}
         {!creando && <button className="btn btn-warning btn-lg fw-bold" onClick={() => setCreando(true)}>＋ Agregar taller</button>}
       </div>
       {creando && <div className="mb-4"><FormTaller datos={datos} guardar={guardar} onListo={() => setCreando(false)} /></div>}

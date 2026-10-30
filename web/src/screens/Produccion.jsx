@@ -5,6 +5,7 @@ import { FotoMini } from './Fotos.jsx'
 import Ventana from './Ventana.jsx'
 import NuevaTanda from './NuevaTanda.jsx'
 import TandaDetalle from './TandaDetalle.jsx'
+import Talleres from './Talleres.jsx'
 
 // Las tandas ya vendidas por completo no se muestran: eso se ve en «¿Cómo me va?»
 const COLUMNAS = ETAPAS_TANDA.map((e) => ({ id: e.n, titulo: e.estado, icono: e.icono, color: e.color }))
@@ -48,6 +49,7 @@ export default function Produccion(props) {
   // Dentro de la ventana, "ir" a producción la cierra y "ir" a una tanda la cambia
   const ir = (p, id = null) => {
     if (p === 'nueva-tanda') setVentana({ tipo: 'nueva' })
+    else if (p === 'talleres') setVentana({ tipo: 'talleres' })
     else if (p === 'tanda') setVentana({ tipo: 'tanda', id })
     else if (p === 'produccion') setVentana(null)
     else { setVentana(null); irApp(p, id) }
@@ -103,6 +105,11 @@ export default function Produccion(props) {
       {ventana && ventana.tipo === 'nueva' && (
         <Ventana titulo="✂️ Nueva tanda" onCerrar={() => setVentana(null)}>
           <NuevaTanda {...props} ir={ir} enVentana />
+        </Ventana>
+      )}
+      {ventana && ventana.tipo === 'talleres' && (
+        <Ventana titulo="🏭 Talleres" onCerrar={() => setVentana(null)}>
+          <Talleres {...props} ir={ir} enVentana />
         </Ventana>
       )}
       {ventana && ventana.tipo === 'tanda' && (

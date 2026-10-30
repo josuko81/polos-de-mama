@@ -3,6 +3,7 @@ import { TALLAS, disenoPorId, fraccionUsada, telaDisponible, pendientesPorTaller
 import Muestra from './Muestra.jsx'
 import NuevoDiseno from './NuevoDiseno.jsx'
 import { FotoMini } from './Fotos.jsx'
+import { FormTaller } from './Talleres.jsx'
 
 const numero = (v) => Number(String(v ?? '').replace(',', '.')) || 0
 const USOS = [
@@ -12,18 +13,24 @@ const USOS = [
 ]
 
 // Taller, precio y fecha estimada: se piden al mandar al taller (aquí o después de estampar)
-export function CamposTaller({ datos, valor, onCambio, ir }) {
+export function CamposTaller({ datos, guardar, valor, onCambio }) {
   const talleres = datos.talleres || []
+  const [agregando, setAgregando] = useState(false)
   const promedios = Object.fromEntries(pendientesPorTaller(datos).map((f) => [f.taller.id, f.promedio]))
   const elegir = (t) => onCambio({
     ...valor, tallerId: t.id, precioTaller: String(t.precio || ''),
     fechaEstimada: sumarDias(hoy(), promedios[t.id] || 7),
   })
+  // Agregar un taller aquí mismo, sin salir de la ventana ni perder lo escrito
+  const formNuevo = (
+    <FormTaller datos={datos} guardar={guardar} onListo={() => setAgregando(false)} onCreado={elegir} />
+  )
   if (!talleres.length) {
     return (
-      <div className="alert alert-warning mb-0">
-        Todavía no tienes talleres. <button className="btn btn-link p-0 align-baseline" onClick={() => ir('talleres')}>Agrega tus talleres</button> y vuelve.
-      </div>
+      <>
+        <div className="alert alert-warning">Todavía no tienes talleres. Agrega el primero:</div>
+        {formNuevo}
+      </>
     )
   }
   return (
@@ -37,7 +44,9 @@ export function CamposTaller({ datos, valor, onCambio, ir }) {
               <span className="d-block small">{soles(t.precio)} por polo{promedios[t.id] ? ` · ~${promedios[t.id]} días` : ''}</span>
             </button>
           ))}
+          {!agregando && <button type="button" className="btn btn-lg btn-outline-warning border-2 border-dashed" onClick={() => setAgregando(true)}>＋ Otro taller</button>}
         </div>
+        {agregando && <div className="mt-3">{formNuevo}</div>}
       </div>
       <div className="col-md-6">
         <label htmlFor="precioTaller" className="fw-bold mb-2">¿Cuánto cobra por polo?</label>
@@ -215,7 +224,7 @@ export default function NuevaTanda({ datos, guardar, guardarVarios, ir, enVentan
           {diseno && !estampado && (
             <div className="card border-0 shadow-sm"><div className="card-body p-4">
               <div className="fs-5 fw-bold mb-3">4. Mandar al taller</div>
-              <CamposTaller datos={datos} valor={taller} onCambio={setTaller} ir={ir} />
+              <CamposTaller datos={datos} guardar={guardar} valor={taller} onCambio={setTaller} />
             </div></div>
           )}
           {estampado && (
