@@ -21,6 +21,9 @@ h1, h2 { color: var(--marca); }
 .columna-lote { background: #e2eae7; }
 .border-dashed { border-style: dashed !important; }
 .tabla-tallas input { min-width: 4.2rem; }
+/* Ancho de la página: aprovecha pantallas grandes sin estirarse de más */
+.contenedor { max-width: 1680px; }
+@media (min-width: 992px) { .contenedor { padding-left: 2rem; padding-right: 2rem; } }
 @media (max-width: 575px) { .boton-menu { --bs-btn-padding-y: .3rem; --bs-btn-padding-x: .6rem; --bs-btn-font-size: 1rem; } }
 .tarjeta-lote { transition: transform .1s; }
 .tarjeta-lote:hover { transform: translateY(-2px); }

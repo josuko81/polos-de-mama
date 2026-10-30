@@ -3,10 +3,8 @@ import { ETAPAS_TANDA, etapaTanda, coloresDeTanda, cortadosDeTanda, recibidosDeT
 import Muestra from './Muestra.jsx'
 import { FotoMini } from './Fotos.jsx'
 
-const COLUMNAS = [
-  ...ETAPAS_TANDA.map((e) => ({ id: e.n, titulo: e.estado, icono: e.icono, color: e.color })),
-  { id: 'agotada', titulo: 'Vendido todo', icono: '🏁', color: 'dark' },
-]
+// Las tandas ya vendidas por completo no se muestran: eso se ve en «¿Cómo me va?»
+const COLUMNAS = ETAPAS_TANDA.map((e) => ({ id: e.n, titulo: e.estado, icono: e.icono, color: e.color }))
 const SIGUIENTE = { 1: '🏭 Mandar al taller', 2: '🧼 Recogí', 3: '✅ Empaqueté' }
 
 function Tarjeta({ t, datos, ir }) {
@@ -75,7 +73,7 @@ export default function Produccion({ datos, ir }) {
                   <span className={`badge rounded-pill text-bg-${c.color} fs-6`}>{grupos[c.id].length}</span>
                 </div>
                 <div className="d-flex flex-column gap-3">
-                  {(c.id === 'agotada' ? grupos[c.id].slice(0, 5) : grupos[c.id]).map((t) => <Tarjeta key={t.id} t={t} datos={datos} ir={ir} />)}
+                  {grupos[c.id].map((t) => <Tarjeta key={t.id} t={t} datos={datos} ir={ir} />)}
                   {grupos[c.id].length === 0 && <div className="text-secondary small text-center py-3">Ninguna</div>}
                 </div>
               </div>

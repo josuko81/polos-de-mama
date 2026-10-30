@@ -15,14 +15,15 @@ import Talleres from './screens/Talleres.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
+// En el orden en que trabaja el negocio: comprar tela → diseño → producir → vender → gastos → resultados.
 // `activo`: otras pantallas que marcan el mismo botón del menú
 const MENU = [
   { id: 'inicio', texto: 'Inicio', icono: '🏠' },
-  { id: 'vendi', texto: 'Vendí', icono: '💰' },
-  { id: 'gaste', texto: 'Gasté', icono: '🧾' },
-  { id: 'produccion', texto: 'Producción', icono: '✂️', activo: ['nueva-tanda', 'tanda', 'talleres', 'lotes', 'lote'] },
   { id: 'tela', texto: 'Tela', icono: '📦', activo: ['compra-tela'] },
   { id: 'disenos', texto: 'Diseños', icono: '👕' },
+  { id: 'produccion', texto: 'Producción', icono: '✂️', activo: ['nueva-tanda', 'tanda', 'talleres', 'lotes', 'lote'] },
+  { id: 'vendi', texto: 'Vendí', icono: '💰' },
+  { id: 'gaste', texto: 'Gasté', icono: '🧾' },
   { id: 'resumen', texto: '¿Cómo me va?', icono: '📊' },
 ]
 
@@ -74,7 +75,7 @@ export default function App() {
   return (
     <>
       <nav className="navbar navbar-dark navbar-marca shadow-sm">
-        <div className="container-xl">
+        <div className="container-fluid contenedor">
           <span className="navbar-brand fw-bold fs-3 cursor-pointer" onClick={() => ir('inicio')}>
             👕 Polos de Mamá
           </span>
@@ -98,7 +99,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="container-xl py-4">
+      <main className="container-fluid contenedor py-4">
         {error && <div className="alert alert-danger fs-5">No se pudieron cargar los datos. {error}</div>}
         {!datos && !error && (
           <div className="text-center py-5">
