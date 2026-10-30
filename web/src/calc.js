@@ -111,6 +111,85 @@ export const nombreLote = (l) => {
   return l.modelo ? [l.modelo, l.color].filter(Boolean).join(' ') : `Tela ${l.color || ''}`.trim()
 }
 
+// ---------- Fechas ----------
+const aDia = (iso) => Math.floor(Date.parse(String(iso || '').slice(0, 10) + 'T12:00:00') / 86400000)
+export const diasEntre = (desde, hasta) => (desde && hasta ? aDia(hasta) - aDia(desde) : null)
+export const sumarDias = (iso, n) => {
+  const d = new Date(Date.parse(iso + 'T12:00:00') + n * 86400000)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+// ---------- Tandas de producción ----------
+// Una tanda es un diseño cortado en varios colores que va junto al taller. En la hoja,
+// `colores` guarda por color: las telas usadas (con qué parte de cada una), lo cortado y lo recibido.
+export const ETAPAS_TANDA = [
+  { n: 1, estado: 'Estampando', icono: '🎨', color: 'secondary' },
+  { n: 2, estado: 'En el taller', icono: '🏭', color: 'warning' },
+  { n: 3, estado: 'Empaquetando', icono: '🧼', color: 'primary' },
+  { n: 4, estado: 'Listo para vender', icono: '✅', color: 'success' },
+]
+export const etapaTanda = (t) => num(t && t.etapa)
+export const coloresDeTanda = (t) => {
+  let c = t && t.colores
+  if (typeof c === 'string') { try { c = JSON.parse(c) } catch (e) { c = [] } }
+  return Array.isArray(c) ? c : []
+}
+export const cortadosDeTanda = (t) => coloresDeTanda(t).reduce((s, x) => s + sumaTallas(x.cortadosT), 0)
+export const recibidosDeTanda = (t) => coloresDeTanda(t).reduce((s, x) => s + sumaTallas(x.recibidosT), 0)
+export const tallerPorId = (datos, id) => (datos.talleres || []).find((x) => String(x.id) === String(id)) || null
+export const telaPorId = (datos, id) => (datos.telas || []).find((x) => String(x.id) === String(id)) || null
+
+// Tela: qué parte se usó (1 = toda) sumando las tandas que la usaron
+export const usosDeTela = (tela, datos) =>
+  (datos.tandas || []).flatMap((t) => coloresDeTanda(t).flatMap((c) => (c.telas || []).filter((u) => String(u.telaId) === String(tela.id)).map((u) => ({ tanda: t, fraccion: num(u.fraccion) }))))
+export const fraccionUsada = (tela, datos) => Math.min(1, usosDeTela(tela, datos).reduce((s, u) => s + u.fraccion, 0))
+export const telaDisponible = (tela, datos) => !tela.acabada && fraccionUsada(tela, datos) < 0.999
+
+// Cuánto cuesta la parte de una tela usada en una tanda. Si la tela se acabó y sobró algo (se bota),
+// ese sobrante se reparte entre las tandas que la usaron.
+export const costoTelaUsada = (tela, fraccion, datos) => {
+  const usado = fraccionUsada(tela, datos)
+  return tela.acabada && usado > 0 ? (num(tela.costo) * fraccion) / usado : num(tela.costo) * fraccion
+}
+
+// Cada color de una tanda se comporta como un lote para el stock y el costo por polo
+export function piezasDeTanda(t, datos) {
+  const colores = coloresDeTanda(t)
+  const totalRec = colores.reduce((s, x) => s + (sumaTallas(x.recibidosT) || sumaTallas(x.cortadosT)), 0)
+  return colores.map((x, i) => {
+    const rec = sumaTallas(x.recibidosT) || sumaTallas(x.cortadosT)
+    const tela = (x.telas || []).reduce((s, u) => { const te = telaPorId(datos, u.telaId); return s + (te ? costoTelaUsada(te, num(u.fraccion), datos) : 0) }, 0)
+    return {
+      id: `T${t.id}-${i}`, tandaId: t.id, fecha: t.fechaRecojo || t.fecha, disenoId: t.disenoId,
+      modelo: (disenoPorId(t.disenoId) || {}).cuello || '', color: x.color,
+      paso: etapaTanda(t) >= 4 ? 5 : 0, recibidosT: x.recibidosT, recibidos: rec,
+      tela, confeccion: num(t.precioTaller), otros: totalRec ? (num(t.otros) * rec) / totalRec : 0,
+    }
+  })
+}
+export const nombreTanda = (t) => `Tanda ${t.id}${nombreDiseno(t.disenoId) ? ' · ' + nombreDiseno(t.disenoId) : ''}`
+
+// Tandas pendientes en cada taller, para el panel de Inicio
+export function pendientesPorTaller(datos) {
+  const hoyIso = hoy()
+  return (datos.talleres || []).map((tl) => {
+    const tandas = (datos.tandas || []).filter((t) => etapaTanda(t) === 2 && String(t.tallerId) === String(tl.id))
+      .map((t) => ({
+        tanda: t, polos: cortadosDeTanda(t), dias: diasEntre(t.fechaEnvio, hoyIso),
+        atraso: t.fechaEstimada ? Math.max(0, diasEntre(t.fechaEstimada, hoyIso)) : 0,
+        aPagar: cortadosDeTanda(t) * num(t.precioTaller),
+      }))
+      .sort((a, b) => b.dias - a.dias)
+    const hechas = (datos.tandas || []).filter((t) => String(t.tallerId) === String(tl.id) && t.fechaEnvio && t.fechaRecojo)
+    const promedio = hechas.length ? Math.round(hechas.reduce((s, t) => s + diasEntre(t.fechaEnvio, t.fechaRecojo), 0) / hechas.length) : null
+    return {
+      taller: tl, tandas, promedio,
+      polos: tandas.reduce((s, x) => s + x.polos, 0),
+      aPagar: tandas.reduce((s, x) => s + x.aPagar, 0),
+    }
+  })
+}
+
 // ---------- Stock ----------
 // Un "producto" es diseño + color + talla. Si varios lotes tienen el mismo producto, su stock se suma.
 // Al vender se descuenta primero del lote más antiguo, así el costo de cada venta sale de su lote real.
@@ -128,8 +207,11 @@ const unidadesLote = (l) => {
 const cacheInventario = new WeakMap()
 export function inventario(datos) {
   if (cacheInventario.has(datos)) return cacheInventario.get(datos)
-  const orden = (a, b) => (String(a.fecha) < String(b.fecha) ? -1 : String(a.fecha) > String(b.fecha) ? 1 : num(a.id) - num(b.id))
-  const lotes = datos.lotes.filter((l) => etapaDe(l) >= LISTO).sort(orden)
+  const orden = (a, b) => (String(a.fecha) < String(b.fecha) ? -1 : String(a.fecha) > String(b.fecha) ? 1
+    : String(a.id).localeCompare(String(b.id), undefined, { numeric: true }))
+  // Lotes antiguos + cada color de las tandas ya empaquetadas
+  const fuentes = [...datos.lotes, ...(datos.tandas || []).flatMap((t) => (etapaTanda(t) >= 4 ? piezasDeTanda(t, datos) : []))]
+  const lotes = fuentes.filter((l) => etapaDe(l) >= LISTO).sort(orden)
   const restante = {}
   lotes.forEach((l) => { restante[l.id] = { ...unidadesLote(l) } })
   const costoVentas = new Map()
@@ -174,6 +256,7 @@ export const stockDeLote = (l, datos) => {
   return r ? Object.values(r).reduce((s, n) => s + Math.max(0, n), 0) : 0
 }
 export const stockPorTallaDeLote = (l, datos) => inventario(datos).restante[l.id] || {}
+export const stockDeTanda = (t, datos) => piezasDeTanda(t, datos).reduce((s, p) => s + stockDeLote(p, datos), 0)
 export const vendidosDeLote = (l, datos) => (etapaDe(l) >= LISTO ? num(l.recibidos) - stockDeLote(l, datos) : 0)
 
 // Productos con stock (diseño + color + talla), sumando todos sus lotes, del más antiguo al más nuevo

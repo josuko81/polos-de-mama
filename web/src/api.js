@@ -18,13 +18,25 @@ const EJEMPLO = {
     { id: 'd1', nombre: 'Clásico', cuello: 'Cuello redondo', tipo: 'Liso' },
     { id: 'd2', nombre: 'Básico V', cuello: 'Cuello V', tipo: 'Liso' },
   ],
-  lotes: [
-    { id: 1, fecha: '2026-10-03', disenoId: 'd1', modelo: 'Cuello redondo', color: 'negro', paso: 5, rollos: 2, kilos: 19, precioKilo: 20, enviados: 100, recibidos: 98,
-      enviadosT: '{"M":40,"Estándar":31,"L":29}', recibidosT: '{"M":40,"Estándar":30,"L":28}', tela: 380, confeccion: 3.5, otros: 20 },
-    { id: 2, fecha: '2026-10-08', disenoId: 'd2', modelo: 'Cuello V', color: 'gris', paso: 5, rollos: 1, kilos: 11, precioKilo: 20, enviados: 50, recibidos: 50,
-      enviadosT: '{"M":20,"Estándar":15,"L":15}', recibidosT: '{"M":20,"Estándar":15,"L":15}', tela: 220, confeccion: 3.8, otros: 10 },
-    { id: 3, fecha: '2026-10-17', disenoId: 'd1', modelo: 'Cuello redondo', color: 'blanco', paso: 3, rollos: 2, kilos: 15, precioKilo: 20, enviados: 60, recibidos: 0,
-      enviadosT: '{"M":20,"Estándar":20,"L":20}', tela: 300, confeccion: 4.5, otros: 0 },
+  lotes: [],
+  talleres: [
+    { id: 'w1', nombre: 'Taller Rosa', telefono: '', precio: 3.5 },
+    { id: 'w2', nombre: 'Taller Juan', telefono: '', precio: 4 },
+  ],
+  telas: [
+    { id: 't1', fecha: '2026-09-28', color: 'negro', rollos: 2, kilos: 19, precioKilo: 20, costo: 380, acabada: true },
+    { id: 't2', fecha: '2026-09-28', color: 'gris', rollos: 1, kilos: 11, precioKilo: 20, costo: 220, acabada: true },
+    { id: 't3', fecha: '2026-10-15', color: 'blanco', rollos: 2, kilos: 15, precioKilo: 20, costo: 300, acabada: false },
+    { id: 't4', fecha: '2026-10-25', color: 'lila', rollos: 1, kilos: 8, precioKilo: 22, costo: 176, acabada: false },
+    { id: 't5', fecha: '2026-10-25', color: 'rojo', rollos: 1, kilos: 10, precioKilo: 22, costo: 220, acabada: false },
+  ],
+  tandas: [
+    { id: 1, fecha: '2026-10-01', disenoId: 'd1', etapa: 4, tallerId: 'w1', precioTaller: 3.5, fechaEnvio: '2026-10-01', fechaEstimada: '2026-10-08', fechaRecojo: '2026-10-07', otros: 20, pagado: true,
+      colores: '[{"color":"negro","telas":[{"telaId":"t1","fraccion":1}],"cortadosT":{"M":40,"Estándar":31,"L":29},"recibidosT":{"M":40,"Estándar":30,"L":28}}]' },
+    { id: 2, fecha: '2026-10-02', disenoId: 'd2', etapa: 4, tallerId: 'w2', precioTaller: 3.8, fechaEnvio: '2026-10-02', fechaEstimada: '2026-10-09', fechaRecojo: '2026-10-08', otros: 10, pagado: true,
+      colores: '[{"color":"gris","telas":[{"telaId":"t2","fraccion":1}],"cortadosT":{"M":20,"Estándar":15,"L":15},"recibidosT":{"M":20,"Estándar":15,"L":15}}]' },
+    { id: 3, fecha: '2026-10-17', disenoId: 'd1', etapa: 2, tallerId: 'w1', precioTaller: 3.5, fechaEnvio: '2026-10-17', fechaEstimada: '2026-10-24', otros: 0, pagado: false,
+      colores: '[{"color":"blanco","telas":[{"telaId":"t3","fraccion":0.5}],"cortadosT":{"M":20,"Estándar":20,"L":20}}]' },
   ],
   ventas: [
     { id: 'v1', fecha: '2026-10-10', disenoId: 'd1', color: 'negro', talla: 'M', cantidad: 12, precio: 14, pagado: true, cliente: '' },
@@ -43,7 +55,7 @@ const EJEMPLO = {
 function leerDemo() {
   try {
     const t = localStorage.getItem(CLAVE)
-    if (t) return { disenos: [], ...JSON.parse(t) }
+    if (t) return { disenos: [], telas: [], talleres: [], tandas: [], ...JSON.parse(t) }
   } catch (e) {}
   return JSON.parse(JSON.stringify(EJEMPLO))
 }
@@ -55,7 +67,7 @@ const esperar = (ms) => new Promise((r) => setTimeout(r, ms))
 
 function guardarEnDemo(lista, tipo, obj) {
   if (obj.id === undefined || obj.id === null || obj.id === '') {
-    obj.id = tipo === 'lotes' ? lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1 : Math.random().toString(36).slice(2, 10)
+    obj.id = tipo === 'lotes' || tipo === 'tandas' ? lista.reduce((m, x) => Math.max(m, Number(x.id) || 0), 0) + 1 : Math.random().toString(36).slice(2, 10)
     lista.push(obj)
   } else {
     const i = lista.findIndex((x) => String(x.id) === String(obj.id))

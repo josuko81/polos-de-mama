@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { COLORES, PASOS, colorHex, soles, hoy } from '../calc.js'
+import { COLORES, colorHex, soles, hoy } from '../calc.js'
 import Muestra from './Muestra.jsx'
 
 const numero = (v) => Number(String(v ?? '').replace(',', '.')) || 0
@@ -7,7 +7,7 @@ const redondear = (n) => Math.round(n * 100) / 100
 
 // Una compra de tela puede traer varios colores: cada color agregado se vuelve un lote
 export default function CompraTela({ datos, guardarVarios, ir }) {
-  const ultimo = [...datos.lotes].reverse().find((l) => Number(l.precioKilo) > 0)
+  const ultimo = [...datos.lotes, ...(datos.telas || [])].sort((a, b) => String(a.fecha).localeCompare(String(b.fecha))).reverse().find((l) => Number(l.precioKilo) > 0)
   const [precioKilo, setPrecioKilo] = useState(ultimo ? String(ultimo.precioKilo) : '')
   const [fecha, setFecha] = useState(hoy())
   const [color, setColor] = useState('')
@@ -38,12 +38,11 @@ export default function CompraTela({ datos, guardarVarios, ir }) {
     if (!lineas.length) return setError('Agrega al menos un color a la compra.')
     setGuardando(true)
     try {
-      const lotes = lineas.map((x) => ({
-        fecha, color: x.color, rollos: x.rollos, kilos: x.kilos, precioKilo: pk,
-        tela: redondear(x.kilos * pk), paso: PASOS[0].valor,
+      const telas = lineas.map((x) => ({
+        fecha, color: x.color, rollos: x.rollos, kilos: x.kilos, precioKilo: pk, costo: redondear(x.kilos * pk), acabada: false,
       }))
-      await guardarVarios('lotes', lotes, lotes.length === 1 ? 'Compra guardada: 1 lote nuevo' : `Compra guardada: ${lotes.length} lotes nuevos`)
-      ir('lotes')
+      await guardarVarios('telas', telas, telas.length === 1 ? 'Compra guardada: 1 tela al almacén' : `Compra guardada: ${telas.length} telas al almacén`)
+      ir('tela')
     } catch (e) {
       setError('No se pudo guardar. Revisa el internet y vuelve a intentar.')
     } finally {
@@ -53,9 +52,9 @@ export default function CompraTela({ datos, guardarVarios, ir }) {
 
   return (
     <>
-      <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('lotes')}>← Mis lotes</button>
+      <button className="btn btn-link px-0 mb-2 fs-5" onClick={() => ir('tela')}>← Almacén de tela</button>
       <h1 className="fw-bold mb-1">🧶 Compré tela</h1>
-      <p className="fs-5 text-secondary mb-4">Agrega cada color que compraste. Cada color será un lote.</p>
+      <p className="fs-5 text-secondary mb-4">Agrega cada color que compraste. Todo queda en el almacén hasta que lo cortes.</p>
 
       <div className="row g-4">
         <div className="col-lg-7">
@@ -148,9 +147,9 @@ export default function CompraTela({ datos, guardarVarios, ir }) {
               {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
               <button className="btn btn-marca btn-lg w-100 mt-4 py-3 fs-4" disabled={guardando} onClick={guardarCompra}>
                 {guardando ? <><span className="spinner-border spinner-border-sm me-2" />Guardando…</>
-                  : lineas.length > 1 ? `Guardar compra (${lineas.length} lotes)` : 'Guardar compra'}
+                  : lineas.length > 1 ? `Guardar compra (${lineas.length} telas)` : 'Guardar compra'}
               </button>
-              <div className="form-text mt-2">Si agregas el mismo color dos veces, serán dos lotes separados.</div>
+              <div className="form-text mt-2">Si agregas el mismo color dos veces, quedan como dos telas separadas en el almacén.</div>
             </div>
           </div>
         </div>

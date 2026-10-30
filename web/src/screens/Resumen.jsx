@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { resumenMes, porCobrar, productos, soles, totalVenta, hoy, mesDe, MESES, nombreLote, nombreVenta, fechaCorta, etapaDe, LISTO, TALLAS } from '../calc.js'
+import { resumenMes, porCobrar, productos, soles, totalVenta, hoy, mesDe, MESES, nombreLote, nombreVenta, fechaCorta, etapaDe, LISTO, TALLAS,
+  etapaTanda, nombreTanda, coloresDeTanda, cortadosDeTanda, recibidosDeTanda } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 
@@ -100,6 +101,14 @@ export default function Resumen({ datos, guardar, borrar }) {
                     <td className="text-end">{etapaDe(l) === 3
                       ? <span className="badge text-bg-primary">empaquetando ({l.recibidos || '?'})</span>
                       : <span className="badge text-bg-warning">en camino ({l.enviados || '?'})</span>}</td>
+                  </tr>
+                ))}
+                {(datos.tandas || []).filter((t) => etapaTanda(t) < 4).map((t) => (
+                  <tr key={'tanda' + t.id}>
+                    <td>{nombreTanda(t)} <span className="small text-secondary">· {coloresDeTanda(t).length} colores</span></td>
+                    <td className="text-end">{etapaTanda(t) === 3
+                      ? <span className="badge text-bg-primary">empaquetando ({recibidosDeTanda(t)})</span>
+                      : <span className="badge text-bg-warning">{etapaTanda(t) === 1 ? 'estampando' : 'en el taller'} ({cortadosDeTanda(t)})</span>}</td>
                   </tr>
                 ))}
               </tbody>

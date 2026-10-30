@@ -7,14 +7,21 @@ import Lotes from './screens/Lotes.jsx'
 import LoteDetalle from './screens/LoteDetalle.jsx'
 import CompraTela from './screens/CompraTela.jsx'
 import Disenos from './screens/Disenos.jsx'
+import Produccion from './screens/Produccion.jsx'
+import NuevaTanda from './screens/NuevaTanda.jsx'
+import TandaDetalle from './screens/TandaDetalle.jsx'
+import Tela from './screens/Tela.jsx'
+import Talleres from './screens/Talleres.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
+// `activo`: otras pantallas que marcan el mismo botón del menú
 const MENU = [
   { id: 'inicio', texto: 'Inicio', icono: '🏠' },
   { id: 'vendi', texto: 'Vendí', icono: '💰' },
   { id: 'gaste', texto: 'Gasté', icono: '🧾' },
-  { id: 'lotes', texto: 'Mis lotes', icono: '🧵' },
+  { id: 'produccion', texto: 'Producción', icono: '✂️', activo: ['nueva-tanda', 'tanda', 'talleres', 'lotes', 'lote'] },
+  { id: 'tela', texto: 'Tela', icono: '📦', activo: ['compra-tela'] },
   { id: 'disenos', texto: 'Diseños', icono: '👕' },
   { id: 'resumen', texto: '¿Cómo me va?', icono: '📊' },
 ]
@@ -75,7 +82,7 @@ export default function App() {
             {MENU.map((m) => (
               <button
                 key={m.id}
-                className={'btn btn-lg ' + (pantalla === m.id || (m.id === 'lotes' && pantalla === 'lote') ? 'btn-light fw-bold' : 'btn-outline-light')}
+                className={'btn btn-lg boton-menu ' + (pantalla === m.id || (m.activo || []).includes(pantalla) ? 'btn-light fw-bold' : 'btn-outline-light')}
                 onClick={() => ir(m.id)}
               >
                 {m.icono} {m.texto}
@@ -107,6 +114,12 @@ export default function App() {
         {datos && pantalla === 'lote' && loteId !== 'nuevo' && <LoteDetalle key={loteId} {...props} loteId={loteId} />}
         {datos && pantalla === 'resumen' && <Resumen {...props} />}
         {datos && pantalla === 'disenos' && <Disenos {...props} />}
+        {datos && pantalla === 'produccion' && <Produccion {...props} />}
+        {datos && pantalla === 'nueva-tanda' && <NuevaTanda {...props} />}
+        {datos && pantalla === 'tanda' && <TandaDetalle key={loteId} {...props} tandaId={loteId} />}
+        {datos && pantalla === 'tela' && <Tela {...props} />}
+        {datos && pantalla === 'compra-tela' && <CompraTela {...props} />}
+        {datos && pantalla === 'talleres' && <Talleres {...props} />}
       </main>
 
       {aviso && <div className="alert alert-success shadow aviso fs-5 text-center">✅ {aviso}</div>}

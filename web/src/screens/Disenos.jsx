@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TALLAS, productos, etapaDe, sumaTallas, fotosDe } from '../calc.js'
+import { TALLAS, productos, etapaDe, etapaTanda, cortadosDeTanda, recibidosDeTanda, sumaTallas, fotosDe } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import NuevoDiseno from './NuevoDiseno.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
@@ -40,8 +40,11 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
           const colores = [...new Set(suyos.map((p) => p.color))]
           const total = suyos.reduce((s, p) => s + p.quedan, 0)
           const lotes = datos.lotes.filter((l) => String(l.disenoId) === String(d.id))
+          const tandas = (datos.tandas || []).filter((t) => String(t.disenoId) === String(d.id))
           const enTaller = lotes.filter((l) => etapaDe(l) === 2).reduce((s, l) => s + (sumaTallas(l.enviadosT) || Number(l.enviados) || 0), 0)
+            + tandas.filter((t) => etapaTanda(t) <= 2).reduce((s, t) => s + cortadosDeTanda(t), 0)
           const empaquetando = lotes.filter((l) => etapaDe(l) === 3).reduce((s, l) => s + (sumaTallas(l.recibidosT) || Number(l.recibidos) || 0), 0)
+            + tandas.filter((t) => etapaTanda(t) === 3).reduce((s, t) => s + recibidosDeTanda(t), 0)
           const conFoto = fotosDe(d).length ? d : lotes.find((l) => fotosDe(l).length)
           const celda = (color, talla) => suyos.filter((p) => p.color === color && p.talla === talla).reduce((s, p) => s + p.quedan, 0)
           return (
@@ -63,7 +66,7 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
                       </div>
                     </div>
                     <button className="btn btn-sm btn-outline-secondary" onClick={() => setEditando(d.id)}>Editar</button>
-                    {lotes.length === 0 && <BotonBorrar onConfirmar={() => borrar('disenos', d.id, 'Diseño borrado')} />}
+                    {lotes.length === 0 && tandas.length === 0 && <BotonBorrar onConfirmar={() => borrar('disenos', d.id, 'Diseño borrado')} />}
                   </div>
                 )}
 

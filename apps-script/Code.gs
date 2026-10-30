@@ -31,9 +31,35 @@ const TABLAS = {
     hoja: 'Gastos',
     cols: [['id', 'ID'], ['fecha', 'Fecha'], ['concepto', '¿En qué gasté?'], ['categoria', 'Categoría'], ['monto', 'Monto S/']],
   },
+  // Almacén de tela: cada compra de un color. Lo usado se calcula desde las tandas.
+  telas: {
+    hoja: 'Telas',
+    cols: [
+      ['id', 'ID'], ['fecha', 'Fecha de compra'], ['color', 'Color'], ['rollos', 'Rollos'], ['kilos', 'Kilos'],
+      ['precioKilo', 'Precio por kilo S/'], ['costo', 'Costo S/'], ['acabada', '¿Se acabó?'],
+    ],
+  },
+  talleres: {
+    hoja: 'Talleres',
+    cols: [['id', 'ID'], ['nombre', 'Nombre'], ['telefono', 'Teléfono'], ['precio', 'Precio por polo S/']],
+  },
+  // Una tanda = un diseño cortado en varios colores. `colores` guarda, por color, las telas usadas y las tallas (JSON).
+  tandas: {
+    hoja: 'Tandas',
+    cols: [
+      ['id', 'N° tanda'], ['fecha', 'Fecha de corte'], ['disenoId', 'Diseño (id)'], ['etapa', 'Etapa (1-4)'],
+      ['tallerId', 'Taller (id)'], ['precioTaller', 'Taller cobra por polo S/'], ['fechaEnvio', 'Mandado al taller'],
+      ['fechaEstimada', 'Fecha estimada'], ['fechaRecojo', 'Recogido'], ['otros', 'Pasajes y otros S/'],
+      ['pagado', '¿Se pagó al taller?'], ['colores', 'Colores, telas y tallas (JSON)'],
+    ],
+  },
 };
 
-const NUMERICOS = ['paso', 'enviados', 'recibidos', 'tela', 'corte', 'confeccion', 'etiquetas', 'otros', 'loteId', 'cantidad', 'precio', 'monto', 'rollos', 'kilos', 'precioKilo'];
+// Columnas que se guardan como Sí / No
+const SI_NO = ['pagado', 'acabada'];
+
+const NUMERICOS = ['paso', 'enviados', 'recibidos', 'tela', 'corte', 'confeccion', 'etiquetas', 'otros', 'loteId', 'cantidad', 'precio', 'monto', 'rollos', 'kilos', 'precioKilo',
+  'costo', 'etapa', 'precioTaller'];
 
 function doGet() {
   prepararHojas_();
@@ -85,7 +111,7 @@ function leer_(tipo) {
       t.cols.forEach(function (c, i) {
         let v = f[i];
         if (v instanceof Date) v = Utilities.formatDate(v, tz, 'yyyy-MM-dd');
-        if (c[0] === 'pagado') v = v === true || String(v).toLowerCase() === 'sí' || String(v).toLowerCase() === 'si';
+        if (SI_NO.indexOf(c[0]) >= 0) v = v === true || String(v).toLowerCase() === 'sí' || String(v).toLowerCase() === 'si';
         else if (NUMERICOS.indexOf(c[0]) >= 0) v = v === '' ? 0 : Number(v);
         o[c[0]] = v;
       });
@@ -95,13 +121,16 @@ function leer_(tipo) {
 
 function getData() {
   prepararHojas_();
-  return { lotes: leer_('lotes'), ventas: leer_('ventas'), gastos: leer_('gastos'), disenos: leer_('disenos') };
+  return {
+    lotes: leer_('lotes'), ventas: leer_('ventas'), gastos: leer_('gastos'), disenos: leer_('disenos'),
+    telas: leer_('telas'), talleres: leer_('talleres'), tandas: leer_('tandas'),
+  };
 }
 
 function aFila_(tipo, obj) {
   return TABLAS[tipo].cols.map(function (c) {
     const v = obj[c[0]];
-    if (c[0] === 'pagado') return v ? 'Sí' : 'No';
+    if (SI_NO.indexOf(c[0]) >= 0) return v ? 'Sí' : 'No';
     return v === undefined || v === null ? '' : v;
   });
 }
@@ -111,7 +140,7 @@ function guardarUno_(tipo, obj) {
   const sh = hoja_(tipo);
   const actuales = leer_(tipo);
   if (obj.id === undefined || obj.id === null || obj.id === '') {
-    obj.id = tipo === 'lotes'
+    obj.id = tipo === 'lotes' || tipo === 'tandas'
       ? actuales.reduce(function (m, x) { return Math.max(m, Number(x.id) || 0); }, 0) + 1
       : Utilities.getUuid().slice(0, 8);
     sh.appendRow(aFila_(tipo, obj));

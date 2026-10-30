@@ -1,12 +1,13 @@
 import React from 'react'
-import { resumenMes, porCobrar, stockTotal, soles, totalVenta, hoy, mesDe, MESES, nombreVenta, fechaCorta, etapaDe } from '../calc.js'
+import { resumenMes, porCobrar, stockTotal, soles, totalVenta, hoy, mesDe, MESES, nombreVenta, fechaCorta, etapaDe, etapaTanda } from '../calc.js'
+import { PanelTalleres } from './Talleres.jsx'
 
 export default function Inicio({ datos, ir }) {
   const mes = mesDe(hoy())
   const r = resumenMes(datos, mes)
   const deben = porCobrar(datos.ventas).reduce((s, v) => s + totalVenta(v), 0)
   const stock = stockTotal(datos)
-  const enTaller = datos.lotes.filter((l) => etapaDe(l) === 2).length
+  const enTaller = datos.lotes.filter((l) => etapaDe(l) === 2).length + (datos.tandas || []).filter((t) => etapaTanda(t) === 2).length
   const nombreMes = MESES[Number(mes.slice(5, 7)) - 1]
 
   const ultimas = [
@@ -29,6 +30,8 @@ export default function Inicio({ datos, ir }) {
   )
 
   return (
+    <>
+    <PanelTalleres datos={datos} ir={ir} />
     <div className="row g-4">
       <div className="col-lg-8">
         <h1 className="fw-bold mb-1">Hola 👋</h1>
@@ -36,7 +39,7 @@ export default function Inicio({ datos, ir }) {
         <div className="row g-3">
           <Boton color="success" icono="💰" texto="Vendí" sub="Anotar una venta" a="vendi" />
           <Boton color="danger" icono="🧾" texto="Gasté" sub="Pasajes, luz, publicidad…" a="gaste" />
-          <Boton color="warning" icono="🧵" texto="Mis lotes" sub="Tela, taller, recojo" a="lotes" />
+          <Boton color="warning" icono="✂️" texto="Producción" sub="Corte, taller, empaquetado" a="produccion" />
           <Boton color="primary" icono="📊" texto="¿Cómo me va?" sub="Lo que me quedó este mes" a="resumen" />
         </div>
       </div>
@@ -60,14 +63,14 @@ export default function Inicio({ datos, ir }) {
             <div className="card border-0 shadow-sm h-100"><div className="card-body">
               <div className="small fw-bold text-secondary">Polos en stock</div>
               <div className="fs-4 fw-bold">{stock}</div>
-              {enTaller > 0 && <div className="small text-warning-emphasis">{enTaller} lote{enTaller > 1 ? 's' : ''} en el taller</div>}
+              {enTaller > 0 && <div className="small text-warning-emphasis">{enTaller} tanda{enTaller > 1 ? 's' : ''} en el taller</div>}
             </div></div>
           </div>
         </div>
         <div className="card border-0 shadow-sm">
           <div className="card-body">
             <div className="fw-bold mb-2">Lo último que anoté</div>
-            {ultimas.length === 0 && <div className="text-secondary">Todavía nada. Empieza con «Vendí» o «Mis lotes».</div>}
+            {ultimas.length === 0 && <div className="text-secondary">Todavía nada. Empieza con «Vendí» o «Producción».</div>}
             <ul className="list-group list-group-flush">
               {ultimas.map((u, i) => (
                 <li key={i} className="list-group-item px-0 d-flex justify-content-between gap-2">
@@ -82,5 +85,6 @@ export default function Inicio({ datos, ir }) {
         </div>
       </div>
     </div>
+    </>
   )
 }
