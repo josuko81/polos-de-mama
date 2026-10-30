@@ -38,12 +38,16 @@ const EJEMPLO = {
     { id: 3, fecha: '2026-10-17', disenoId: 'd1', etapa: 2, tallerId: 'w1', precioTaller: 3.5, fechaEnvio: '2026-10-17', fechaEstimada: '2026-10-24', otros: 0, pagado: false,
       colores: '[{"color":"blanco","telas":[{"telaId":"t3","fraccion":0.5}],"cortadosT":{"M":20,"Estándar":20,"L":20}}]' },
   ],
+  clientes: [
+    { id: 'c1', nombre: 'Sra. Rosa', telefono: '987654321', nota: 'Mayorista, puesto en Gamarra' },
+    { id: 'c2', nombre: 'Don Pedro', telefono: '', nota: '' },
+  ],
   ventas: [
-    { id: 'v1', fecha: '2026-10-10', disenoId: 'd1', color: 'negro', talla: 'M', cantidad: 12, precio: 14, pagado: true, cliente: '' },
-    { id: 'v2', fecha: '2026-10-12', disenoId: 'd1', color: 'negro', talla: 'L', cantidad: 3, precio: 16, pagado: true, cliente: '' },
-    { id: 'v3', fecha: '2026-10-15', disenoId: 'd1', color: 'negro', talla: 'Estándar', cantidad: 24, precio: 14, pagado: false, cliente: 'Sra. Rosa (mayorista)' },
-    { id: 'v4', fecha: '2026-10-20', disenoId: 'd1', color: 'negro', talla: 'L', cantidad: 2, precio: 16, pagado: true, cliente: '' },
-    { id: 'v5', fecha: '2026-10-24', disenoId: 'd2', color: 'gris', talla: 'M', cantidad: 10, precio: 14, pagado: true, cliente: '' },
+    { id: 'v1', fecha: '2026-10-10', pedidoId: 'p1', clienteId: 'c2', cliente: 'Don Pedro', canal: 'Gamarra', disenoId: 'd1', color: 'negro', talla: 'M', cantidad: 12, precio: 14, pagado: true },
+    { id: 'v2', fecha: '2026-10-10', pedidoId: 'p1', clienteId: 'c2', cliente: 'Don Pedro', canal: 'Gamarra', disenoId: 'd1', color: 'negro', talla: 'L', cantidad: 3, precio: 16, pagado: true },
+    { id: 'v3', fecha: '2026-10-15', pedidoId: 'p2', clienteId: 'c1', cliente: 'Sra. Rosa', canal: 'Gamarra', disenoId: 'd1', color: 'negro', talla: 'Estándar', cantidad: 24, precio: 14, pagado: false },
+    { id: 'v4', fecha: '2026-10-20', pedidoId: 'p3', canal: 'WhatsApp', disenoId: 'd1', color: 'negro', talla: 'L', cantidad: 2, precio: 16, pagado: true, cliente: '' },
+    { id: 'v5', fecha: '2026-10-24', pedidoId: 'p4', clienteId: 'c1', cliente: 'Sra. Rosa', canal: 'WhatsApp', disenoId: 'd2', color: 'gris', talla: 'M', cantidad: 10, precio: 14, pagado: true },
   ],
   gastos: [
     { id: 'g1', fecha: '2026-10-05', concepto: 'Pasajes a la feria', categoria: 'Pasajes', monto: 24 },
@@ -55,7 +59,7 @@ const EJEMPLO = {
 function leerDemo() {
   try {
     const t = localStorage.getItem(CLAVE)
-    if (t) return { disenos: [], telas: [], talleres: [], tandas: [], ...JSON.parse(t) }
+    if (t) return { disenos: [], telas: [], talleres: [], tandas: [], clientes: [], ...JSON.parse(t) }
   } catch (e) {}
   return JSON.parse(JSON.stringify(EJEMPLO))
 }
@@ -89,10 +93,12 @@ const demo = {
     objs.forEach((obj) => guardarEnDemo(d[tipo], tipo, obj))
     return { datos: escribirDemo(d), ids: objs.map((o) => o.id) }
   },
-  async borrar(tipo, id) {
+  async borrar(tipo, id) { return demo.borrarVarios(tipo, [id]) },
+  async borrarVarios(tipo, ids) {
     await esperar(200)
     const d = leerDemo()
-    d[tipo] = d[tipo].filter((x) => String(x.id) !== String(id))
+    const quitar = ids.map(String)
+    d[tipo] = d[tipo].filter((x) => !quitar.includes(String(x.id)))
     return { datos: escribirDemo(d) }
   },
   // Fotos: en modo de prueba se guardan en el navegador (caben pocas)
@@ -129,6 +135,7 @@ export const api = {
   guardar: (tipo, obj) => (enAppsScript ? llamar('guardar', tipo, obj) : demo.guardar(tipo, obj)),
   guardarVarios: (tipo, objs) => (enAppsScript ? llamar('guardarVarios', tipo, objs) : demo.guardarVarios(tipo, objs)),
   borrar: (tipo, id) => (enAppsScript ? llamar('borrar', tipo, id) : demo.borrar(tipo, id)),
+  borrarVarios: (tipo, ids) => (enAppsScript ? llamar('borrarVarios', tipo, ids) : demo.borrarVarios(tipo, ids)),
   subirFoto: (dataUrl) => (enAppsScript ? llamar('subirFoto', dataUrl) : demo.subirFoto(dataUrl)),
   verFoto: (id) => {
     if (!fotosVistas.has(id)) {

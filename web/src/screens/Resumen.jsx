@@ -1,8 +1,9 @@
 import React, { useState } from 'react'
-import { resumenMes, porCobrar, productos, soles, totalVenta, hoy, mesDe, MESES, nombreLote, nombreVenta, fechaCorta, etapaDe, LISTO, TALLAS,
-  etapaTanda, nombreTanda, coloresDeTanda, cortadosDeTanda, recibidosDeTanda } from '../calc.js'
+import { resumenMes, productos, soles, totalVenta, hoy, mesDe, MESES, nombreLote, nombreVenta, fechaCorta, etapaDe, LISTO, TALLAS,
+  etapaTanda, nombreTanda, coloresDeTanda, cortadosDeTanda, recibidosDeTanda, pedidos, textoPedido, CANALES } from '../calc.js'
 import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
+import { BotonYaPago } from './Clientes.jsx'
 
 const moverMes = (mes, d) => {
   let [y, m] = mes.split('-').map(Number)
@@ -12,10 +13,19 @@ const moverMes = (mes, d) => {
   return `${y}-${String(m).padStart(2, '0')}`
 }
 
-export default function Resumen({ datos, guardar, borrar }) {
+export default function Resumen({ datos, guardarVarios, borrar, borrarVarios }) {
   const [mes, setMes] = useState(mesDe(hoy()))
   const r = resumenMes(datos, mes)
-  const deben = porCobrar(datos.ventas)
+  const deben = pedidos(datos.ventas, datos).filter((p) => !p.pagado)
+  // Lo más vendido del mes (diseño + color) y lo vendido por canal
+  const masVendido = Object.values(r.ventas.reduce((m, v) => {
+    const k = `${nombreVenta(v, datos.lotes)}|${v.color || ''}`
+    m[k] = m[k] || { nombre: nombreVenta(v, datos.lotes), color: v.color || '', cantidad: 0 }
+    m[k].cantidad += Number(v.cantidad) || 0
+    return m
+  }, {})).sort((a, b) => b.cantidad - a.cantidad).slice(0, 5)
+  const porCanal = CANALES.map((c) => ({ ...c, total: r.ventas.filter((v) => v.canal === c.id).reduce((s, v) => s + totalVenta(v), 0) }))
+  const sinCanal = r.ventas.filter((v) => !v.canal).reduce((s, v) => s + totalVenta(v), 0)
   // Stock sumado por diseño + color + talla, ordenado para leerlo fácil
   const orden = (t) => (TALLAS.indexOf(t) < 0 ? 99 : TALLAS.indexOf(t))
   const stock = productos(datos).sort((a, b) => a.nombre.localeCompare(b.nombre) || a.color.localeCompare(b.color) || orden(a.talla) - orden(b.talla))
@@ -23,7 +33,11 @@ export default function Resumen({ datos, guardar, borrar }) {
   const titulo = `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}`
 
   const historial = [
-    ...r.ventas.map((v) => ({ ...v, tipo: 'ventas', texto: `${v.cantidad} × ${nombreVenta(v, datos.lotes)} (${v.talla})`, monto: totalVenta(v) })),
+    ...pedidos(r.ventas, datos).map((p) => ({
+      id: p.id, fecha: p.fecha, tipo: 'ventas', ids: p.lineas.map((v) => v.id), monto: p.total,
+      texto: (p.lineas.length === 1 ? `${p.cantidad} × ${nombreVenta(p.lineas[0], datos.lotes)} (${p.lineas[0].talla})` : `${p.cantidad} polos: ${textoPedido(p, datos.lotes)}`)
+        + (p.cliente ? ` · ${p.cliente}` : ''),
+    })),
     ...r.listaGastos.map((g) => ({ ...g, tipo: 'gastos', texto: g.concepto, monto: g.monto })),
   ].sort((a, b) => (a.fecha < b.fecha ? 1 : -1))
 
@@ -67,22 +81,46 @@ export default function Resumen({ datos, guardar, borrar }) {
           <div className="card border-0 shadow-sm"><div className="card-body p-4">
             <div className="d-flex justify-content-between align-items-baseline mb-2">
               <span className="fs-5 fw-bold">Me deben</span>
-              <span className="fs-5 fw-bold text-danger">{soles(deben.reduce((s, v) => s + totalVenta(v), 0))}</span>
+              <span className="fs-5 fw-bold text-danger">{soles(deben.reduce((s, p) => s + p.total, 0))}</span>
             </div>
             {deben.length === 0 && <div className="text-secondary">Nadie te debe. 👍</div>}
             <ul className="list-group list-group-flush">
-              {deben.map((v) => (
-                <li key={v.id} className="list-group-item px-0 d-flex align-items-center gap-2">
+              {deben.map((p) => (
+                <li key={p.id} className="list-group-item px-0 d-flex align-items-center gap-2">
                   <div className="flex-grow-1">
-                    <div className="fw-bold">{v.cliente || 'Sin nombre'}</div>
-                    <div className="small text-secondary">{fechaCorta(v.fecha)} · {v.cantidad} polos</div>
+                    <div className="fw-bold">{p.cliente || 'Sin nombre'}</div>
+                    <div className="small text-secondary">{fechaCorta(p.fecha)} · {p.cantidad} polos</div>
                   </div>
-                  <b className="text-nowrap">{soles(totalVenta(v))}</b>
-                  <button className="btn btn-success btn-sm" onClick={() => guardar('ventas', { id: v.id, pagado: true }, 'Marcado como pagado')}>Ya me pagó</button>
+                  <b className="text-nowrap">{soles(p.total)}</b>
+                  <BotonYaPago pedido={p} guardarVarios={guardarVarios} />
                 </li>
               ))}
             </ul>
           </div></div>
+
+          <div className="row g-4">
+            <div className="col-md-6">
+              <div className="card border-0 shadow-sm h-100"><div className="card-body p-4">
+                <div className="fs-5 fw-bold mb-2">Lo más vendido en {titulo.split(' ')[0]}</div>
+                {masVendido.length === 0 && <div className="text-secondary">Sin ventas este mes.</div>}
+                {masVendido.map((x, i) => (
+                  <div key={i} className="d-flex justify-content-between align-items-center py-1">
+                    <span className="d-inline-flex align-items-center gap-2">{i + 1}. <Muestra color={x.color} />{x.nombre}{x.nombre.toLowerCase().includes(x.color) ? '' : ` ${x.color}`}</span>
+                    <b>{x.cantidad}</b>
+                  </div>
+                ))}
+              </div></div>
+            </div>
+            <div className="col-md-6">
+              <div className="card border-0 shadow-sm h-100"><div className="card-body p-4">
+                <div className="fs-5 fw-bold mb-2">¿Dónde vendí?</div>
+                {porCanal.map((c) => (
+                  <div key={c.id} className="d-flex justify-content-between py-1"><span>{c.icono} {c.id}</span><b>{soles(c.total)}</b></div>
+                ))}
+                {sinCanal > 0 && <div className="d-flex justify-content-between py-1 text-secondary"><span>Sin anotar</span><b>{soles(sinCanal)}</b></div>}
+              </div></div>
+            </div>
+          </div>
 
           <div className="card border-0 shadow-sm"><div className="card-body p-4">
             <div className="fs-5 fw-bold mb-2">Me quedan</div>
@@ -128,7 +166,7 @@ export default function Resumen({ datos, guardar, borrar }) {
                   <b className={'text-nowrap ' + (h.tipo === 'ventas' ? 'text-success' : 'text-danger')}>
                     {h.tipo === 'ventas' ? '+' : '−'} {soles(h.monto)}
                   </b>
-                  <BotonBorrar onConfirmar={() => borrar(h.tipo, h.id, h.tipo === 'ventas' ? 'Venta borrada' : 'Gasto borrado')} />
+                  <BotonBorrar onConfirmar={() => (h.tipo === 'ventas' ? borrarVarios('ventas', h.ids, 'Venta borrada') : borrar('gastos', h.id, 'Gasto borrado'))} />
                 </li>
               ))}
             </ul>

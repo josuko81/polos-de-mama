@@ -9,10 +9,11 @@ import CompraTela from './screens/CompraTela.jsx'
 import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
 import Tela from './screens/Tela.jsx'
+import Clientes from './screens/Clientes.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
-// En el orden en que trabaja el negocio: comprar tela → diseño → producir → vender → gastos → resultados.
+// En el orden en que trabaja el negocio: comprar tela → diseño → producir → vender → clientes → gastos → resultados.
 // `activo`: otras pantallas que marcan el mismo botón del menú
 const MENU = [
   { id: 'inicio', texto: 'Inicio', icono: '🏠' },
@@ -20,6 +21,7 @@ const MENU = [
   { id: 'disenos', texto: 'Diseños', icono: '👕' },
   { id: 'produccion', texto: 'Producción', icono: '✂️', activo: ['nueva-tanda', 'tanda', 'talleres', 'lotes', 'lote'] },
   { id: 'vendi', texto: 'Vendí', icono: '💰' },
+  { id: 'clientes', texto: 'Clientes', icono: '👥' },
   { id: 'gaste', texto: 'Gasté', icono: '🧾' },
   { id: 'resumen', texto: '¿Cómo me va?', icono: '📊' },
 ]
@@ -65,9 +67,14 @@ export default function App() {
     setDatos(r.datos)
     if (mensaje) setAviso(mensaje)
   }
+  const borrarVarios = async (tipo, ids, mensaje) => {
+    const r = await api.borrarVarios(tipo, ids)
+    setDatos(r.datos)
+    if (mensaje) setAviso(mensaje)
+  }
 
   if (datos) registrarDisenos(datos.disenos)
-  const props = { datos, ir, guardar, guardarVarios, borrar }
+  const props = { datos, ir, guardar, guardarVarios, borrar, borrarVarios }
 
   return (
     <>
@@ -117,6 +124,7 @@ export default function App() {
         {datos && pantalla === 'nueva-tanda' && <Produccion key="nueva" {...props} abrir={{ tipo: 'nueva' }} />}
         {datos && pantalla === 'tanda' && <Produccion key={'tanda' + loteId} {...props} abrir={{ tipo: 'tanda', id: loteId }} />}
         {datos && pantalla === 'tela' && <Tela {...props} />}
+        {datos && pantalla === 'clientes' && <Clientes {...props} />}
         {datos && pantalla === 'compra-tela' && <CompraTela {...props} />}
         {datos && pantalla === 'talleres' && <Produccion key="talleres" {...props} abrir={{ tipo: 'talleres' }} />}
       </main>

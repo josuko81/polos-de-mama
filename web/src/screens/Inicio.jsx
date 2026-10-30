@@ -1,5 +1,5 @@
 import React from 'react'
-import { resumenMes, porCobrar, stockTotal, soles, totalVenta, hoy, mesDe, MESES, nombreVenta, fechaCorta, etapaDe, etapaTanda } from '../calc.js'
+import { resumenMes, porCobrar, stockTotal, soles, totalVenta, hoy, mesDe, MESES, nombreVenta, fechaCorta, etapaDe, etapaTanda, pedidos } from '../calc.js'
 import { PanelTalleres } from './Talleres.jsx'
 
 export default function Inicio({ datos, ir }) {
@@ -11,7 +11,10 @@ export default function Inicio({ datos, ir }) {
   const nombreMes = MESES[Number(mes.slice(5, 7)) - 1]
 
   const ultimas = [
-    ...datos.ventas.map((v) => ({ fecha: v.fecha, texto: `Vendí ${v.cantidad} ${nombreVenta(v, datos.lotes)} (${v.talla})`, monto: totalVenta(v), tipo: 'v' })),
+    ...pedidos(datos.ventas, datos).map((p) => ({
+      fecha: p.fecha, monto: p.total, tipo: 'v',
+      texto: (p.lineas.length === 1 ? `Vendí ${p.cantidad} ${nombreVenta(p.lineas[0], datos.lotes)} (${p.lineas[0].talla})` : `Vendí ${p.cantidad} polos`) + (p.cliente ? ` a ${p.cliente}` : ''),
+    })),
     ...datos.gastos.map((g) => ({ fecha: g.fecha, texto: g.concepto, monto: g.monto, tipo: 'g' })),
   ]
     .sort((a, b) => (a.fecha < b.fecha ? 1 : -1))

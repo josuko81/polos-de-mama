@@ -331,4 +331,37 @@ export function resumenMes(datos, mes) {
 
 export const porCobrar = (ventas) => ventas.filter((v) => !v.pagado)
 
+// ---------- Pedidos y clientes ----------
+export const CANALES = [
+  { id: 'Gamarra', icono: '🏪' },
+  { id: 'WhatsApp', icono: '💬' },
+  { id: 'Facebook', icono: '📘' },
+]
+export const clientePorId = (datos, id) => (datos.clientes || []).find((c) => String(c.id) === String(id)) || null
+export const nombreCliente = (v, datos) => {
+  const c = v.clienteId ? clientePorId(datos, v.clienteId) : null
+  return c ? c.nombre : v.cliente || ''
+}
+export const enlaceWhatsApp = (tel) => `https://wa.me/51${String(tel || '').replace(/\D/g, '').replace(/^51/, '')}`
+
+// Una venta de varios productos son varias filas con el mismo pedidoId. Las ventas antiguas son un pedido cada una.
+export function pedidos(ventas, datos) {
+  const mapa = new Map()
+  ventas.forEach((v) => {
+    const id = v.pedidoId || 'v:' + v.id
+    if (!mapa.has(id)) {
+      mapa.set(id, { id, fecha: v.fecha, clienteId: v.clienteId || '', cliente: nombreCliente(v, datos), canal: v.canal || '', lineas: [] })
+    }
+    mapa.get(id).lineas.push(v)
+  })
+  return [...mapa.values()].map((p) => ({
+    ...p,
+    pagado: p.lineas.every((v) => v.pagado),
+    cantidad: p.lineas.reduce((s, v) => s + num(v.cantidad), 0),
+    total: p.lineas.reduce((s, v) => s + totalVenta(v), 0),
+  })).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+}
+export const textoPedido = (p, lotes) =>
+  p.lineas.map((v) => `${v.cantidad} ${nombreVenta(v, lotes)} ${v.talla}`).join(' · ')
+
 export const stockTotal = (datos) => productos(datos).reduce((s, p) => s + p.quedan, 0)

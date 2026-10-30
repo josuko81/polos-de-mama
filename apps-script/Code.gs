@@ -21,7 +21,13 @@ const TABLAS = {
       ['id', 'ID'], ['fecha', 'Fecha'], ['loteId', 'N° lote'], ['talla', 'Talla'], ['cantidad', 'Cantidad'],
       ['precio', 'Precio por polo S/'], ['pagado', '¿Ya pagó?'], ['cliente', 'Cliente / nota'],
       ['disenoId', 'Diseño (id)'], ['color', 'Color'],
+      // Una venta con varios productos son varias filas con el mismo pedido
+      ['pedidoId', 'Pedido'], ['clienteId', 'Cliente (id)'], ['canal', 'Canal'],
     ],
+  },
+  clientes: {
+    hoja: 'Clientes',
+    cols: [['id', 'ID'], ['nombre', 'Nombre'], ['telefono', 'Teléfono (WhatsApp)'], ['nota', 'Nota']],
   },
   disenos: {
     hoja: 'Diseños',
@@ -123,7 +129,7 @@ function getData() {
   prepararHojas_();
   return {
     lotes: leer_('lotes'), ventas: leer_('ventas'), gastos: leer_('gastos'), disenos: leer_('disenos'),
-    telas: leer_('telas'), talleres: leer_('talleres'), tandas: leer_('tandas'),
+    telas: leer_('telas'), talleres: leer_('talleres'), tandas: leer_('tandas'), clientes: leer_('clientes'),
   };
 }
 
@@ -221,6 +227,11 @@ function borrarFoto(id) {
 }
 
 function borrar(tipo, id) {
+  return borrarVarios(tipo, [id]);
+}
+
+/** Borra varios registros de una vez (por ejemplo, todas las filas de un pedido). */
+function borrarVarios(tipo, lista) {
   const lock = LockService.getScriptLock();
   lock.waitLock(10000);
   try {
@@ -228,8 +239,11 @@ function borrar(tipo, id) {
     const n = sh.getLastRow() - 1;
     if (n > 0) {
       const ids = sh.getRange(2, 1, n, 1).getValues().map(function (r) { return String(r[0]); });
-      const i = ids.indexOf(String(id));
-      if (i >= 0) sh.deleteRow(i + 2);
+      const buscados = lista.map(String);
+      // De abajo hacia arriba para que no se muevan las filas que faltan borrar
+      for (let i = ids.length - 1; i >= 0; i--) {
+        if (buscados.indexOf(ids[i]) >= 0) sh.deleteRow(i + 2);
+      }
     }
     SpreadsheetApp.flush();
     return { datos: getData() };
