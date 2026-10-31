@@ -10,7 +10,7 @@ import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
 import Tela from './screens/Tela.jsx'
 import Clientes from './screens/Clientes.jsx'
-import { VentasCuaderno, GastosCuaderno, ResumenCuaderno } from './screens/Cuaderno.jsx'
+import Cuaderno, { VentasCuaderno, GastosCuaderno, ResumenCuaderno } from './screens/Cuaderno.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
@@ -19,6 +19,7 @@ import Resumen from './screens/Resumen.jsx'
 // `otras`: pantallas que pertenecen a esa pestaña (por ejemplo, la compra de tela es parte de Tela).
 const MENU = [
   { id: 'inicio', texto: 'Inicio', icono: '🏠', pestanas: [{ id: 'inicio' }] },
+  { id: 'cuaderno', texto: 'Cuaderno', icono: '📒', pestanas: [{ id: 'cuaderno' }] },
   {
     id: 'produccion', texto: 'Producción', icono: '✂️', pestanas: [
       { id: 'produccion', texto: 'Tablero', icono: '📋', otras: ['nueva-tanda', 'tanda', 'lotes', 'lote'] },
@@ -41,6 +42,7 @@ const MENU = [
 ]
 // Menú para mamá: las 3 tablas de su cuaderno y el resumen. Lo demás queda en «opciones completas».
 const MENU_SIMPLE = [
+  { id: 'cuaderno', texto: 'Cuaderno', icono: '📒', pestanas: [{ id: 'cuaderno' }] },
   { id: 'c-ventas', texto: 'Ventas', icono: '💰', pestanas: [{ id: 'c-ventas' }] },
   { id: 'c-material', texto: 'Material', icono: '🧵', pestanas: [{ id: 'c-material' }] },
   { id: 'c-gastos', texto: 'Gastos', icono: '🧾', pestanas: [{ id: 'c-gastos' }] },
@@ -55,7 +57,7 @@ export default function App() {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
   const [completo, setCompleto] = useState(leerCompleto)
-  const [pantalla, setPantalla] = useState(() => (leerCompleto() ? 'inicio' : 'c-ventas'))
+  const [pantalla, setPantalla] = useState(() => (leerCompleto() ? 'inicio' : 'cuaderno'))
   const [loteId, setLoteId] = useState(null)
   const [aviso, setAviso] = useState('')
 
@@ -107,7 +109,7 @@ export default function App() {
     const nuevo = !completo
     try { localStorage.setItem(CLAVE_COMPLETO, nuevo ? '1' : '0') } catch (e) {}
     setCompleto(nuevo)
-    ir(nuevo ? 'inicio' : 'c-ventas')
+    ir(nuevo ? 'inicio' : 'cuaderno')
   }
 
   return (
@@ -157,6 +159,7 @@ export default function App() {
             <p className="mt-3 fs-5">Cargando tus cuentas…</p>
           </div>
         )}
+        {datos && pantalla === 'cuaderno' && <Cuaderno {...props} />}
         {datos && pantalla === 'c-ventas' && <VentasCuaderno {...props} />}
         {datos && pantalla === 'c-material' && <GastosCuaderno key="material" {...props} material />}
         {datos && pantalla === 'c-gastos' && <GastosCuaderno key="gastos" {...props} material={false} />}

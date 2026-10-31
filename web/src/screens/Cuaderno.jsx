@@ -35,8 +35,9 @@ function Soles({ id, etiqueta, valor, onCambio }) {
 }
 
 // Tabla 1: Fecha | Prenda | Costo | Venta | Ganancia
-export function VentasCuaderno({ datos, guardar, borrar }) {
-  const [mes, setMes] = useState(mesDe(hoy()))
+export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
+  const [mesPropio, setMes] = useState(mesDe(hoy()))
+  const mes = mesFijo || mesPropio
   const [form, setForm] = useState({ fecha: hoy(), prenda: '', costo: '', venta: '' })
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -62,7 +63,7 @@ export function VentasCuaderno({ datos, guardar, borrar }) {
   const venta = filas.reduce((s, x) => s + numero(x.venta), 0)
   return (
     <>
-      <Encabezado titulo="💰 Ventas" mes={mes} setMes={setMes} />
+      {mesFijo ? <h2 className="fw-bold fs-3 mb-3">1. Ventas</h2> : <Encabezado titulo="💰 Ventas" mes={mes} setMes={setMes} />}
       <div className="card border-0 shadow-sm mb-4"><div className="card-body p-4">
         <div className="row g-3 align-items-end">
           <div className="col-md-2">
@@ -109,8 +110,10 @@ export function VentasCuaderno({ datos, guardar, borrar }) {
 }
 
 // Tablas 2 y 3: Fecha | Compras material | Costo y Fecha | Gasto mensual | Total
-export function GastosCuaderno({ datos, guardar, borrar, material }) {
-  const [mes, setMes] = useState(mesDe(hoy()))
+export function GastosCuaderno({ datos, guardar, borrar, material, mesFijo }) {
+  const [mesPropio, setMes] = useState(mesDe(hoy()))
+  const mes = mesFijo || mesPropio
+  const pre = material ? 'm' : 'g' // las dos tablas pueden estar en la misma página
   const [form, setForm] = useState({ fecha: hoy(), concepto: '', monto: '' })
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -135,18 +138,20 @@ export function GastosCuaderno({ datos, guardar, borrar, material }) {
 
   return (
     <>
-      <Encabezado titulo={material ? '🧵 Compra de material' : '🧾 Gastos del mes'} mes={mes} setMes={setMes} />
+      {mesFijo
+        ? <h2 className="fw-bold fs-3 mb-3 mt-5">{material ? '2. Gastos del mes: compra de material' : '3. Gasto mensual'}</h2>
+        : <Encabezado titulo={material ? '🧵 Compra de material' : '🧾 Gastos del mes'} mes={mes} setMes={setMes} />}
       <div className="card border-0 shadow-sm mb-4"><div className="card-body p-4">
         <div className="row g-3 align-items-end">
           <div className="col-md-3">
-            <label htmlFor="g-fecha" className="fw-bold mb-1">Fecha</label>
-            <input id="g-fecha" type="date" className="form-control form-control-lg" value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
+            <label htmlFor={`${pre}-fecha`} className="fw-bold mb-1">Fecha</label>
+            <input id={`${pre}-fecha`} type="date" className="form-control form-control-lg" value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
           </div>
           <div className="col-md-4">
-            <label htmlFor="g-concepto" className="fw-bold mb-1">{columna}</label>
-            <input id="g-concepto" className="form-control form-control-lg" placeholder={material ? 'Ej: Tela negra' : 'Ej: Luz'} value={form.concepto} onChange={(e) => setForm((f) => ({ ...f, concepto: e.target.value }))} />
+            <label htmlFor={`${pre}-concepto`} className="fw-bold mb-1">{columna}</label>
+            <input id={`${pre}-concepto`} className="form-control form-control-lg" placeholder={material ? 'Ej: Tela negra' : 'Ej: Luz'} value={form.concepto} onChange={(e) => setForm((f) => ({ ...f, concepto: e.target.value }))} />
           </div>
-          <div className="col-md-3"><Soles id="g-monto" etiqueta={columnaMonto} valor={form.monto} onCambio={(v) => setForm((f) => ({ ...f, monto: v }))} /></div>
+          <div className="col-md-3"><Soles id={`${pre}-monto`} etiqueta={columnaMonto} valor={form.monto} onCambio={(v) => setForm((f) => ({ ...f, monto: v }))} /></div>
           <div className="col-md-2"><button className="btn btn-marca btn-lg w-100" disabled={guardando} onClick={anotar}>{guardando ? 'Guardando…' : 'Anotar'}</button></div>
         </div>
         {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
@@ -171,6 +176,19 @@ export function GastosCuaderno({ datos, guardar, borrar, material }) {
           )}
         </table>
       </div></div>
+    </>
+  )
+}
+
+// El cuaderno completo: las 3 tablas en una sola página, del mismo mes
+export default function Cuaderno(props) {
+  const [mes, setMes] = useState(mesDe(hoy()))
+  return (
+    <>
+      <Encabezado titulo="📒 Cuaderno" mes={mes} setMes={setMes} />
+      <VentasCuaderno {...props} mesFijo={mes} />
+      <GastosCuaderno {...props} material mesFijo={mes} />
+      <GastosCuaderno {...props} material={false} mesFijo={mes} />
     </>
   )
 }

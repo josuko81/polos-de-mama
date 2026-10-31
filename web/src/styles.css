@@ -34,7 +34,7 @@ h1, h2 { color: var(--marca); }
 @media (max-width: 575px) {
   .navbar-marca .navbar-brand { font-size: 1.35rem !important; }
   .menu-grupos { width: 100%; flex-wrap: nowrap !important; gap: .35rem !important; }
-  .boton-menu { flex: 1 1 0; white-space: nowrap; --bs-btn-padding-y: .3rem; --bs-btn-padding-x: .15rem; --bs-btn-font-size: .85rem; }
+  .boton-menu { flex: 1 1 0; white-space: nowrap; --bs-btn-padding-y: .3rem; --bs-btn-padding-x: .1rem; --bs-btn-font-size: .75rem; }
 }
 .tarjeta-lote { transition: transform .1s; }
 .tarjeta-lote:hover { transform: translateY(-2px); }
