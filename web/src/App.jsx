@@ -10,7 +10,8 @@ import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
 import Tela from './screens/Tela.jsx'
 import Clientes from './screens/Clientes.jsx'
-import Cuaderno, { VentasCuaderno, GastosCuaderno, ResumenCuaderno } from './screens/Cuaderno.jsx'
+import Cuaderno, { VentasCuaderno, ComprasCuaderno, GastosCuaderno, ResumenCuaderno } from './screens/Cuaderno.jsx'
+import Materiales from './screens/Materiales.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
@@ -25,6 +26,7 @@ const MENU = [
       { id: 'produccion', texto: 'Tablero', icono: '📋', otras: ['nueva-tanda', 'tanda', 'lotes', 'lote'] },
       { id: 'tela', texto: 'Tela', icono: '📦', otras: ['compra-tela'] },
       { id: 'disenos', texto: 'Diseños', icono: '👕' },
+      { id: 'materiales', texto: 'Materiales', icono: '🧵' },
     ],
   },
   {
@@ -47,7 +49,12 @@ const MENU_SIMPLE = [
   { id: 'c-material', texto: 'Material', icono: '🧵', pestanas: [{ id: 'c-material' }] },
   { id: 'c-gastos', texto: 'Gastos', icono: '🧾', pestanas: [{ id: 'c-gastos' }] },
   { id: 'c-resumen', texto: 'Resumen', icono: '📊', pestanas: [{ id: 'c-resumen' }] },
-  { id: 'c-disenos', texto: 'Diseños', icono: '👕', pestanas: [{ id: 'disenos' }] },
+  {
+    id: 'c-disenos', texto: 'Diseños', icono: '👕', pestanas: [
+      { id: 'disenos', texto: 'Diseños', icono: '👕' },
+      { id: 'materiales', texto: 'Materiales', icono: '🧵' },
+    ],
+  },
 ]
 const CLAVE_COMPLETO = 'polos-de-mama-opciones-completas'
 const leerCompleto = () => { try { return localStorage.getItem(CLAVE_COMPLETO) === '1' } catch (e) { return false } }
@@ -162,8 +169,9 @@ export default function App() {
         )}
         {datos && pantalla === 'cuaderno' && <Cuaderno {...props} />}
         {datos && pantalla === 'c-ventas' && <VentasCuaderno {...props} />}
-        {datos && pantalla === 'c-material' && <GastosCuaderno key="material" {...props} material />}
-        {datos && pantalla === 'c-gastos' && <GastosCuaderno key="gastos" {...props} material={false} />}
+        {datos && pantalla === 'c-material' && <ComprasCuaderno {...props} />}
+        {datos && pantalla === 'c-gastos' && <GastosCuaderno {...props} />}
+        {datos && pantalla === 'materiales' && <Materiales {...props} />}
         {datos && pantalla === 'c-resumen' && <ResumenCuaderno {...props} />}
         {datos && pantalla === 'inicio' && <Inicio {...props} />}
         {datos && pantalla === 'vendi' && <Vendi {...props} />}

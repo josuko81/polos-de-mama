@@ -4,6 +4,7 @@ import { moverMes } from './Resumen.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import Ventana from './Ventana.jsx'
 import NuevoDiseno from './NuevoDiseno.jsx'
+import { FormMaterial } from './Materiales.jsx'
 import { FotoMini } from './Fotos.jsx'
 
 // Las 3 tablas del cuaderno de mamá, con sus mismas columnas, y el resumen del mes.
@@ -70,6 +71,18 @@ function Soles({ id, etiqueta, valor, onCambio }) {
 
 function Sugerencias({ id, nombres }) {
   return <datalist id={id}>{nombres.map((n) => <option key={n} value={n} />)}</datalist>
+}
+
+// Opción de un catálogo (material) con su foto y nombre
+function BotonCatalogo({ item, activo, icono, onClick }) {
+  return (
+    <button type="button" aria-pressed={activo} className={'btn btn-outline-secondary opcion text-start p-2 opcion-prenda ' + (activo ? 'active' : '')} onClick={onClick}>
+      <span className="d-flex align-items-center gap-2">
+        {fotosDe(item).length ? <FotoMini de={item} tam="3.5rem" /> : <span className="foto-vacia">{icono}</span>}
+        <span className="fw-bold">{item.nombre}</span>
+      </span>
+    </button>
+  )
 }
 
 function BotonesForm({ editando, guardando, onCancelar }) {
@@ -260,24 +273,149 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   )
 }
 
-// Tablas 2 y 3: Fecha | Compras material | Costo y Fecha | Gasto mensual | Total
-export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, material, mesFijo }) {
+// Tabla 2: Fecha | Compras material | Cant. | Costo. El material se elige del catálogo, como las prendas.
+export function ComprasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const [mesPropio, setMes] = useState(mesDe(hoy()))
   const mes = mesFijo || mesPropio
-  const pre = material ? 'm' : 'g'
+  const vacio = () => ({ id: '', fecha: fechaDeMes(mes), materialId: '', concepto: '', cantidad: '1', costo: '' })
+  const [form, setForm] = useState(vacio)
+  const [error, setError] = useState('')
+  const [guardando, setGuardando] = useState(false)
+  const [creando, setCreando] = useState(false)
+  const auto = useRef(false)
+  const campo = useRef(null)
+  const materiales = [...(datos.materiales || [])].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  const lista = (datos.gastos || []).filter((g) => g.categoria === CAT_MATERIAL)
+  const previasPorId = ultimasPorNombre(lista, 'materialId')
+  const previas = ultimasPorNombre(lista, 'concepto')
+  const filas = delMes(lista, mes)
+  const cant = numero(form.cantidad)
+  const total = redondear(cant * numero(form.costo))
+
+  useEffect(() => { setForm((f) => (f.id ? f : { ...f, fecha: fechaDeMes(mes) })) }, [mes])
+
+  // Al tocar un material se llena su último costo y el cursor pasa a Cantidad
+  const elegir = (m) => {
+    const p = previasPorId.get(norm(m.id)) || previas.get(norm(m.nombre))
+    setForm((f) => {
+      const n = { ...f, materialId: m.id, concepto: m.nombre }
+      if (f.id || !(auto.current || !f.costo)) return n
+      auto.current = true
+      return { ...n, costo: p ? porUnidad(p, 'monto') : '' }
+    })
+    campo.current.focus()
+    campo.current.select()
+  }
+  const limpiar = () => { auto.current = false; setForm(vacio()) }
+  const editar = (g) => {
+    setError('')
+    auto.current = false
+    setForm({ id: g.id, fecha: g.fecha, materialId: g.materialId || '', concepto: g.concepto, cantidad: String(cantidadDe(g)), costo: porUnidad(g, 'monto') })
+    campo.current.scrollIntoView({ block: 'center' })
+    campo.current.focus()
+  }
+
+  const anotar = async (e) => {
+    e.preventDefault()
+    setError('')
+    // El nombre sale del catálogo; las filas antiguas conservan el que tenían
+    const material = materiales.find((m) => String(m.id) === String(form.materialId))
+    const concepto = material ? material.nombre : form.concepto
+    if (!concepto) return setError('Elige el material.')
+    if (!cant) return setError('Escribe la cantidad.')
+    if (!numero(form.costo)) return setError('Escribe el costo de cada uno.')
+    setGuardando(true)
+    try {
+      await guardar('gastos', {
+        ...(form.id ? { id: form.id } : {}), fecha: form.fecha, concepto, materialId: form.materialId,
+        categoria: CAT_MATERIAL, cantidad: cant, monto: total,
+      }, form.id ? 'Cambios guardados' : 'Compra anotada')
+      limpiar()
+      campo.current.focus()
+    } catch (err) {
+      setError('No se pudo guardar. Revisa el internet y vuelve a intentar.')
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <>
+      {!mesFijo && <Encabezado titulo="🧵 Compra de material" mes={mes} setMes={setMes} />}
+      {creando && (
+        <div className="mb-3">
+          <FormMaterial datos={datos} guardar={guardar} onCancelar={() => setCreando(false)}
+            onListo={(id) => { setCreando(false); setForm((f) => ({ ...f, materialId: id })); campo.current.focus() }} />
+        </div>
+      )}
+      <form className="card border-0 shadow-sm mb-4" onSubmit={anotar}><div className="card-body p-4">
+        {form.id && <div className="fw-bold text-marca mb-2">✏️ Corrigiendo esta compra</div>}
+        <div className="fw-bold mb-2">Material</div>
+        <div className="d-flex flex-wrap gap-2 mb-3">
+          {materiales.map((m) => <BotonCatalogo key={m.id} item={m} activo={String(form.materialId) === String(m.id)} icono="🧵" onClick={() => elegir(m)} />)}
+          {!creando && <button type="button" className="btn btn-outline-warning border-2 border-dashed" onClick={() => setCreando(true)}>＋ Nuevo material</button>}
+        </div>
+        {form.id && !form.materialId && <div className="small text-secondary mb-3">Anotada antes como «{form.concepto}». Si eliges un material, se cambia.</div>}
+        <div className="row g-3 align-items-end">
+          <div className="col-md-4">
+            <label htmlFor="m-fecha" className="fw-bold mb-1">Fecha</label>
+            <input id="m-fecha" type="date" className="form-control form-control-lg" value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
+          </div>
+          <div className="col-md-4">
+            <label htmlFor="m-cantidad" className="fw-bold mb-1">Cantidad</label>
+            <input ref={campo} id="m-cantidad" className="form-control form-control-lg text-center fw-bold" inputMode="decimal" value={form.cantidad} onChange={(e) => { const v = e.target.value; setForm((f) => ({ ...f, cantidad: v })) }} />
+          </div>
+          <div className="col-md-4"><Soles id="m-costo" etiqueta="Costo de cada uno" valor={form.costo} onCambio={(v) => { auto.current = false; setForm((f) => ({ ...f, costo: v })) }} /></div>
+        </div>
+        {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
+        <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-3">
+          <div className="text-secondary" id="m-total">Costo total <b>{soles(total)}</b></div>
+          <div className="boton-anotar"><BotonesForm editando={!!form.id} guardando={guardando} onCancelar={limpiar} /></div>
+        </div>
+      </div></form>
+
+      <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">
+        <table className="table align-middle mb-0">
+          <thead><tr><th>Fecha</th><th>Compras material</th><th className="text-center">Cant.</th><th className="text-end">Costo</th><th /></tr></thead>
+          <tbody>
+            {filas.length === 0 && <tr><td colSpan={5} className="text-secondary text-center py-4">No hay nada anotado en este mes.</td></tr>}
+            {filas.map((g) => (
+              <tr key={g.id} className={String(form.id) === String(g.id) ? 'table-warning' : ''}>
+                <td className="text-nowrap">{fechaCorta(g.fecha)}</td>
+                <td>{g.concepto}</td>
+                <td className="text-center">{cantidadDe(g)}</td>
+                <td className="text-end text-nowrap">{soles(g.monto)}</td>
+                <td className="text-end text-nowrap">
+                  <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => editar(g)}>Editar</button>
+                  <BotonBorrar onConfirmar={() => borrar('gastos', g.id, 'Borrado')} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+          {filas.length > 0 && (
+            <tfoot><tr className="fw-bold"><td colSpan={3}>Total</td><td className="text-end text-nowrap">{soles(filas.reduce((s, g) => s + numero(g.monto), 0))}</td><td /></tr></tfoot>
+          )}
+        </table>
+      </div></div>
+    </>
+  )
+}
+
+// Tabla 3: Fecha | Gasto mensual | Total
+export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, mesFijo }) {
+  const [mesPropio, setMes] = useState(mesDe(hoy()))
+  const mes = mesFijo || mesPropio
   const vacio = () => ({ id: '', fecha: fechaDeMes(mes), concepto: '', monto: '' })
   const [form, setForm] = useState(vacio)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const auto = useRef(false)
   const campo = useRef(null)
-  const lista = (datos.gastos || []).filter((g) => (g.categoria === CAT_MATERIAL) === material)
+  const lista = (datos.gastos || []).filter((g) => g.categoria !== CAT_MATERIAL)
   const previas = ultimasPorNombre(lista, 'concepto')
   const filas = delMes(lista, mes)
   const mesPasado = moverMes(mes, -1)
   const delMesPasado = delMes(lista, mesPasado)
-  const columna = material ? 'Compras material' : 'Gasto mensual'
-  const columnaMonto = material ? 'Costo' : 'Total'
 
   useEffect(() => { setForm((f) => (f.id ? f : { ...f, fecha: fechaDeMes(mes) })) }, [mes])
 
@@ -299,14 +437,14 @@ export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, material
   const anotar = async (e) => {
     e.preventDefault()
     setError('')
-    if (!form.concepto.trim()) return setError(`Escribe ${material ? 'qué material compraste' : 'el gasto'}.`)
-    if (!numero(form.monto)) return setError(`Escribe ${material ? 'el costo' : 'el total'}.`)
+    if (!form.concepto.trim()) return setError('Escribe el gasto.')
+    if (!numero(form.monto)) return setError('Escribe el total.')
     const previa = previas.get(norm(form.concepto))
     setGuardando(true)
     try {
       await guardar('gastos', {
         ...(form.id ? { id: form.id } : {}), fecha: form.fecha, concepto: previa ? previa.concepto : form.concepto.trim(),
-        categoria: material ? CAT_MATERIAL : 'Gasto mensual', monto: numero(form.monto),
+        categoria: 'Gasto mensual', monto: numero(form.monto),
       }, form.id ? 'Cambios guardados' : 'Anotado')
       limpiar()
       campo.current.focus()
@@ -332,8 +470,8 @@ export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, material
 
   return (
     <>
-      {!mesFijo && <Encabezado titulo={material ? '🧵 Compra de material' : '🧾 Gastos del mes'} mes={mes} setMes={setMes} />}
-      {!material && filas.length === 0 && delMesPasado.length > 0 && (
+      {!mesFijo && <Encabezado titulo="🧾 Gastos del mes" mes={mes} setMes={setMes} />}
+      {filas.length === 0 && delMesPasado.length > 0 && (
         <button className="btn btn-warning btn-lg fw-bold w-100 mb-3" disabled={guardando} onClick={copiarMesPasado}>
           Copiar los {delMesPasado.length} gastos de {MESES[Number(mesPasado.slice(5)) - 1]}
         </button>
@@ -342,15 +480,15 @@ export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, material
         {form.id && <div className="fw-bold text-marca mb-2">✏️ Corrigiendo esta fila</div>}
         <div className="row g-3 align-items-end">
           <div className="col-md-3">
-            <label htmlFor={`${pre}-fecha`} className="fw-bold mb-1">Fecha</label>
-            <input id={`${pre}-fecha`} type="date" className="form-control form-control-lg" value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
+            <label htmlFor="g-fecha" className="fw-bold mb-1">Fecha</label>
+            <input id="g-fecha" type="date" className="form-control form-control-lg" value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
           </div>
           <div className="col-md-4">
-            <label htmlFor={`${pre}-concepto`} className="fw-bold mb-1">{columna}</label>
-            <input ref={campo} id={`${pre}-concepto`} list={`${pre}-conceptos`} autoComplete="off" className="form-control form-control-lg" placeholder={material ? 'Ej: Tela negra' : 'Ej: Luz'} value={form.concepto} onChange={(e) => escribirConcepto(e.target.value)} />
-            <Sugerencias id={`${pre}-conceptos`} nombres={[...previas.values()].reverse().map((x) => x.concepto)} />
+            <label htmlFor="g-concepto" className="fw-bold mb-1">Gasto mensual</label>
+            <input ref={campo} id="g-concepto" list="g-conceptos" autoComplete="off" className="form-control form-control-lg" placeholder="Ej: Luz" value={form.concepto} onChange={(e) => escribirConcepto(e.target.value)} />
+            <Sugerencias id="g-conceptos" nombres={[...previas.values()].reverse().map((x) => x.concepto)} />
           </div>
-          <div className="col-md-5"><Soles id={`${pre}-monto`} etiqueta={columnaMonto} valor={form.monto} onCambio={(v) => { auto.current = false; setForm((f) => ({ ...f, monto: v })) }} /></div>
+          <div className="col-md-5"><Soles id="g-monto" etiqueta="Total" valor={form.monto} onCambio={(v) => { auto.current = false; setForm((f) => ({ ...f, monto: v })) }} /></div>
         </div>
         {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
         <div className="d-flex justify-content-end mt-3">
@@ -360,7 +498,7 @@ export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, material
 
       <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">
         <table className="table align-middle mb-0">
-          <thead><tr><th>Fecha</th><th>{columna}</th><th className="text-end">{columnaMonto}</th><th /></tr></thead>
+          <thead><tr><th>Fecha</th><th>Gasto mensual</th><th className="text-end">Total</th><th /></tr></thead>
           <tbody>
             {filas.length === 0 && <tr><td colSpan={4} className="text-secondary text-center py-4">No hay nada anotado en este mes.</td></tr>}
             {filas.map((g) => (
@@ -433,7 +571,8 @@ export default function Cuaderno(props) {
       {tarjeta && (
         <Ventana titulo={`${tarjeta.icono} ${tarjeta.titulo} · ${nombreMes(mes)}`} onCerrar={() => setAbierta(null)}>
           {tarjeta.id === 'ventas' && <VentasCuaderno {...props} mesFijo={mes} />}
-          {(tarjeta.id === 'material' || tarjeta.id === 'gastos') && <GastosCuaderno key={tarjeta.id} {...props} material={tarjeta.id === 'material'} mesFijo={mes} />}
+          {tarjeta.id === 'material' && <ComprasCuaderno {...props} mesFijo={mes} />}
+          {tarjeta.id === 'gastos' && <GastosCuaderno {...props} mesFijo={mes} />}
           {tarjeta.id === 'queda' && <CuentasDelMes datos={datos} mes={mes} />}
         </Ventana>
       )}

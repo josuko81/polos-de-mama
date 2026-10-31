@@ -83,7 +83,7 @@ export default function Fotos({ registro, tipo, titulo, guardar, sinTarjeta = fa
         </button>
         <input ref={entrada} type="file" accept="image/*" multiple hidden onChange={subir} />
       </div>
-      {ids.length === 0 && <p className="text-secondary mb-0">Sube una foto del polo para reconocerlo fácil al vender.</p>}
+      {ids.length === 0 && <p className="text-secondary mb-0">Sube una foto para reconocerlo fácil al anotar.</p>}
       <div className="d-flex flex-wrap gap-3">
         {ids.map((id) => (
           <button key={id} type="button" className="btn p-0 border-0" onClick={() => setGrande(id)}>

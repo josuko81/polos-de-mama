@@ -38,6 +38,11 @@ const EJEMPLO = {
     { id: 3, fecha: '2026-10-17', disenoId: 'd1', etapa: 2, tallerId: 'w1', precioTaller: 3.5, fechaEnvio: '2026-10-17', fechaEstimada: '2026-10-24', otros: 0, pagado: false,
       colores: '[{"color":"blanco","telas":[{"telaId":"t3","fraccion":0.5}],"cortadosT":{"M":20,"Estándar":20,"L":20}}]' },
   ],
+  materiales: [
+    { id: 'mat1', nombre: 'Tela' },
+    { id: 'mat2', nombre: 'Hilo' },
+    { id: 'mat3', nombre: 'Etiquetas' },
+  ],
   cuaderno: [
     { id: 'n1', fecha: '2026-10-12', disenoId: 'd1', prenda: 'Clásico', talla: 'M', cantidad: 12, costo: 96, venta: 168 },
     { id: 'n2', fecha: '2026-10-20', disenoId: 'd2', prenda: 'Básico V', talla: 'L', cantidad: 6, costo: 54, venta: 96 },
@@ -57,14 +62,14 @@ const EJEMPLO = {
     { id: 'g1', fecha: '2026-10-05', concepto: 'Pasajes a la feria', categoria: 'Pasajes', monto: 24 },
     { id: 'g2', fecha: '2026-10-08', concepto: 'Publicidad en Facebook', categoria: 'Publicidad', monto: 30 },
     { id: 'g3', fecha: '2026-10-25', concepto: 'Recarga de celular', categoria: 'Internet y celular', monto: 15 },
-    { id: 'g4', fecha: '2026-10-26', concepto: 'Tela negra', categoria: 'Compra de material', monto: 400 },
+    { id: 'g4', fecha: '2026-10-26', concepto: 'Tela', materialId: 'mat1', cantidad: 20, categoria: 'Compra de material', monto: 400 },
   ],
 }
 
 function leerDemo() {
   try {
     const t = localStorage.getItem(CLAVE)
-    if (t) return { disenos: [], telas: [], talleres: [], tandas: [], clientes: [], cuaderno: [], ...JSON.parse(t) }
+    if (t) return { disenos: [], telas: [], talleres: [], tandas: [], clientes: [], cuaderno: [], materiales: [], ...JSON.parse(t) }
   } catch (e) {}
   return JSON.parse(JSON.stringify(EJEMPLO))
 }

@@ -41,7 +41,13 @@ const TABLAS = {
   },
   gastos: {
     hoja: 'Gastos',
-    cols: [['id', 'ID'], ['fecha', 'Fecha'], ['concepto', '¿En qué gasté?'], ['categoria', 'Categoría'], ['monto', 'Monto S/']],
+    cols: [['id', 'ID'], ['fecha', 'Fecha'], ['concepto', '¿En qué gasté?'], ['categoria', 'Categoría'], ['monto', 'Monto S/'],
+      ['materialId', 'Material (id)'], ['cantidad', 'Cantidad']],
+  },
+  // Catálogo de materiales, como el de diseños: se eligen al anotar una compra
+  materiales: {
+    hoja: 'Materiales',
+    cols: [['id', 'ID'], ['nombre', 'Nombre'], ['fotos', 'Fotos (ids en Drive)']],
   },
   // Almacén de tela: cada compra de un color. Lo usado se calcula desde las tandas.
   telas: {
@@ -135,7 +141,7 @@ function getData() {
   prepararHojas_();
   return {
     lotes: leer_('lotes'), ventas: leer_('ventas'), gastos: leer_('gastos'), disenos: leer_('disenos'),
-    telas: leer_('telas'), talleres: leer_('talleres'), tandas: leer_('tandas'), clientes: leer_('clientes'), cuaderno: leer_('cuaderno'),
+    telas: leer_('telas'), talleres: leer_('talleres'), tandas: leer_('tandas'), clientes: leer_('clientes'), cuaderno: leer_('cuaderno'), materiales: leer_('materiales'),
   };
 }
 
