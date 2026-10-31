@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { soles, hoy, mesDe, fechaCorta, fotosDe, MESES, PRECIOS, COSTO_ESTIMADO, tallasDeDiseno } from '../calc.js'
+import { CAT_MATERIAL, numero, delMes, cantidadDe, cuentasMes } from '../cuaderno.js'
 import { moverMes } from './Resumen.jsx'
+import Dashboard from './Dashboard.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import Ventana from './Ventana.jsx'
 import NuevoDiseno from './NuevoDiseno.jsx'
@@ -9,11 +11,7 @@ import { FotoMini } from './Fotos.jsx'
 
 // Las 3 tablas del cuaderno de mamá, con sus mismas columnas, y el resumen del mes.
 // La app sugiere lo ya anotado para que escriba lo mínimo.
-export const CAT_MATERIAL = 'Compra de material'
-const numero = (v) => Number(String(v ?? '').replace(',', '.')) || 0
 const norm = (t) => String(t || '').trim().toLowerCase()
-// Lo último anotado primero: reverse deja arriba lo más nuevo cuando la fecha es la misma
-const delMes = (lista, mes) => lista.filter((x) => mesDe(x.fecha) === mes).reverse().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
 const nombreMes = (mes) => `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}`
 // Fecha para anotar en un mes: hoy, o el día 1 si se está viendo otro mes
 const fechaDeMes = (mes) => (mesDe(hoy()) === mes ? hoy() : `${mes}-01`)
@@ -28,27 +26,12 @@ function ultimasPorNombre(lista, campo) {
 
 const textoMonto = (n) => (numero(n) ? String(n) : '')
 const redondear = (n) => Math.round(n * 100) / 100
-// Las filas guardan totales; las anotadas antes de existir la cantidad cuentan como 1
-const cantidadDe = (x) => numero(x.cantidad) || 1
 const porUnidad = (x, campo) => textoMonto(redondear(numero(x[campo]) / cantidadDe(x)))
 
-// Totales del mes: "Me quedó" no resta el material porque ya está en el costo de cada prenda
-function cuentasMes(datos, mes) {
-  const ventas = delMes(datos.cuaderno || [], mes)
-  const gastos = delMes(datos.gastos || [], mes)
-  const vendido = ventas.reduce((s, x) => s + numero(x.venta), 0)
-  const ganancia = vendido - ventas.reduce((s, x) => s + numero(x.costo), 0)
-  const suma = (lista) => lista.reduce((s, g) => s + numero(g.monto), 0)
-  const material = suma(gastos.filter((g) => g.categoria === CAT_MATERIAL))
-  const mensual = suma(gastos.filter((g) => g.categoria !== CAT_MATERIAL))
-  // "Dinero del mes" sí resta el material: es la plata que entró menos la que salió
-  return { vendido, ganancia, material, mensual, queda: ganancia - mensual, dinero: vendido - material - mensual }
-}
-
-function Encabezado({ titulo, mes, setMes }) {
+function Encabezado({ titulo, mes, setMes, compacto = false }) {
   return (
-    <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-      <h1 className="fw-bold mb-0">{titulo}</h1>
+    <div className={'d-flex flex-wrap justify-content-between align-items-center gap-3 ' + (compacto ? 'mb-2' : 'mb-4')}>
+      <h1 className={'fw-bold mb-0 ' + (compacto ? 'fs-3' : '')}>{titulo}</h1>
       <div className="btn-group btn-group-lg shadow-sm">
         <button className="btn btn-light border" aria-label="Mes anterior" onClick={() => setMes(moverMes(mes, -1))}>‹</button>
         <span className="btn btn-light border fw-bold px-4" style={{ minWidth: '13rem' }}>{nombreMes(mes)}</span>
@@ -559,19 +542,21 @@ export default function Cuaderno(props) {
   const tarjeta = TARJETAS.find((t) => t.id === abierta)
   return (
     <>
-      <Encabezado titulo="📒 Cuaderno" mes={mes} setMes={setMes} />
-      <div className="row g-3">
+      <Encabezado titulo="📒 Cuaderno" mes={mes} setMes={setMes} compacto />
+      <div className="row g-2">
         {TARJETAS.map((t) => (
-          <div className="col-sm-6 col-lg-4" key={t.id}>
-            <button className={'btn border-0 shadow-sm tarjeta-lote w-100 h-100 text-start p-4 ' + (t.resultado ? (t.total < 0 ? 'btn-danger' : 'btn-success') : 'btn-light')} onClick={() => setAbierta(t.id)}>
-              <span className="d-block mb-2" style={{ fontSize: '2.6rem' }}>{t.icono}</span>
-              <span className={'d-block fs-4 fw-bold ' + (t.resultado ? '' : 'text-marca')}>{t.titulo}</span>
-              <span className={'d-block small ' + (t.resultado ? '' : 'text-secondary')}>Total de {MESES[Number(mes.slice(5)) - 1]}</span>
-              <span className="d-block numero-grande">{soles(t.total)}</span>
+          <div className="col-6 col-md-4 col-xl" key={t.id}>
+            <button className={'btn border-0 shadow-sm tarjeta-lote tarjeta-mini w-100 h-100 ' + (t.resultado ? (t.total < 0 ? 'btn-danger' : 'btn-success') : 'btn-light')} onClick={() => setAbierta(t.id)}>
+              <span className="icono-mini">{t.icono}</span>
+              <span>
+                <span className="titulo-mini">{t.titulo}</span>
+                <span className="monto-mini">{soles(t.total)}</span>
+              </span>
             </button>
           </div>
         ))}
       </div>
+      <Dashboard datos={datos} mes={mes} />
       {tarjeta && (
         <Ventana titulo={`${tarjeta.icono} ${tarjeta.titulo} · ${nombreMes(mes)}`} onCerrar={() => setAbierta(null)}>
           {tarjeta.id === 'ventas' && <VentasCuaderno {...props} mesFijo={mes} />}
