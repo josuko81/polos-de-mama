@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { soles, hoy, mesDe, fechaCorta, fotosDe, MESES, TALLAS, PRECIOS } from '../calc.js'
+import { soles, hoy, mesDe, fechaCorta, fotosDe, MESES, PRECIOS, COSTO_ESTIMADO, tallasDeDiseno } from '../calc.js'
 import { moverMes } from './Resumen.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import Ventana from './Ventana.jsx'
@@ -106,16 +106,21 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   // diseño y el precio por mayor de la talla. Nunca pisa lo que ella escribió.
   const conPrecios = (f, cambios) => {
     const n = { ...f, ...cambios }
-    if (f.id || !(auto.current || (!f.costo && !f.venta))) return n
-    const exacta = n.talla ? previasPorTalla.get(norm(`${n.disenoId}|${n.talla}`)) : null
+    if (!n.talla || f.id || !(auto.current || (!f.costo && !f.venta))) return n
+    const exacta = previasPorTalla.get(norm(`${n.disenoId}|${n.talla}`))
     const delDiseno = exacta || previasPorDiseno.get(norm(n.disenoId)) || previas.get(norm(n.prenda))
-    const costo = delDiseno ? porUnidad(delDiseno, 'costo') : ''
-    const venta = exacta ? porUnidad(exacta, 'venta') : PRECIOS[n.talla] ? String(PRECIOS[n.talla]) : delDiseno ? porUnidad(delDiseno, 'venta') : ''
-    if (!costo && !venta) return n
     auto.current = true
-    return { ...n, costo, venta }
+    return {
+      ...n,
+      costo: (delDiseno && porUnidad(delDiseno, 'costo')) || String(COSTO_ESTIMADO),
+      venta: exacta ? porUnidad(exacta, 'venta') : String(PRECIOS[n.talla]),
+    }
   }
-  const elegirDiseno = (d) => setForm((f) => conPrecios(f, { disenoId: d.id, prenda: d.nombre }))
+  // Si el diseño tiene una sola talla se elige sola; si no maneja la marcada, se quita
+  const elegirDiseno = (d) => {
+    const tallas = tallasDeDiseno(d)
+    setForm((f) => conPrecios(f, { disenoId: d.id, prenda: d.nombre, talla: tallas.length === 1 ? tallas[0] : tallas.includes(f.talla) ? f.talla : '' }))
+  }
   // Al tocar la talla el cursor pasa a Cantidad
   const elegirTalla = (t) => {
     setForm((f) => conPrecios(f, { talla: t }))
@@ -183,7 +188,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
                 {fotosDe(d).length ? <FotoMini de={d} tam="3.5rem" /> : <span className="foto-vacia">👕</span>}
                 <span>
                   <span className="d-block fw-bold">{d.nombre}</span>
-                  <span className="d-block small">{d.cuello}</span>
+                  <span className="d-block small">{d.cuello} · {tallasDeDiseno(d).join(', ')}</span>
                 </span>
               </span>
             </button>
@@ -194,7 +199,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
           <>
             <div className="fw-bold mb-2">Talla</div>
             <div className="d-flex flex-wrap gap-2 mb-3">
-              {TALLAS.map((t) => (
+              {tallasDeDiseno(disenos.find((d) => String(d.id) === String(form.disenoId))).map((t) => (
                 <button key={t} type="button" aria-pressed={form.talla === t} className={'btn btn-lg btn-outline-secondary opcion px-4 ' + (form.talla === t ? 'active' : '')} onClick={() => elegirTalla(t)}>{t}</button>
               ))}
             </div>
@@ -213,25 +218,28 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
           </div>
           <div className="col-6 col-md-3 order-md-4"><Soles id="v-costo" etiqueta="Costo de cada una" valor={form.costo} onCambio={escribirMonto('costo')} /></div>
           <div className="col-6 col-md-3 order-md-5"><Soles id="v-venta" etiqueta="Venta de cada una" valor={form.venta} onCambio={escribirMonto('venta')} /></div>
-          <div className="col-md-3 order-md-6 small text-secondary" id="v-totales">
-            <div className="d-flex justify-content-between"><span>Costo total</span><b>{soles(totalCosto)}</b></div>
-            <div className="d-flex justify-content-between"><span>Venta total</span><b>{soles(totalVenta)}</b></div>
-            <div className="d-flex justify-content-between text-success"><span>Ganancia</span><b>{soles(totalVenta - totalCosto)}</b></div>
-          </div>
-          <div className="col-md-3 order-md-7"><BotonesForm editando={!!form.id} guardando={guardando} onCancelar={limpiar} /></div>
         </div>
         {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
+        <div className="d-flex flex-wrap justify-content-between align-items-end gap-3 mt-3">
+          <div className="text-secondary" id="v-totales">
+            <span className="me-3">Costo total <b>{soles(totalCosto)}</b></span>
+            <span className="me-3">Venta total <b>{soles(totalVenta)}</b></span>
+            <span className="text-success">Ganancia <b>{soles(totalVenta - totalCosto)}</b></span>
+          </div>
+          <div className="boton-anotar"><BotonesForm editando={!!form.id} guardando={guardando} onCancelar={limpiar} /></div>
+        </div>
       </div></form>
 
       <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">
         <table className="table align-middle mb-0">
-          <thead><tr><th>Fecha</th><th>Prenda</th><th className="text-center">Cant.</th><th className="text-end">Costo</th><th className="text-end">Venta</th><th className="text-end">Ganancia</th><th /></tr></thead>
+          <thead><tr><th>Fecha</th><th>Prenda</th><th className="text-center">Talla</th><th className="text-center">Cant.</th><th className="text-end">Costo</th><th className="text-end">Venta</th><th className="text-end">Ganancia</th><th /></tr></thead>
           <tbody>
-            {filas.length === 0 && <tr><td colSpan={7} className="text-secondary text-center py-4">No hay ventas en este mes.</td></tr>}
+            {filas.length === 0 && <tr><td colSpan={8} className="text-secondary text-center py-4">No hay ventas en este mes.</td></tr>}
             {filas.map((x) => (
               <tr key={x.id} className={String(form.id) === String(x.id) ? 'table-warning' : ''}>
                 <td className="text-nowrap">{fechaCorta(x.fecha)}</td>
-                <td>{x.prenda}{x.talla && <span className="badge text-bg-light border ms-2">{x.talla}</span>}</td>
+                <td>{x.prenda}</td>
+                <td className="text-center">{x.talla || '–'}</td>
                 <td className="text-center">{cantidadDe(x)}</td>
                 <td className="text-end text-nowrap">{soles(x.costo)}</td>
                 <td className="text-end text-nowrap">{soles(x.venta)}</td>
@@ -244,7 +252,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
             ))}
           </tbody>
           {filas.length > 0 && (
-            <tfoot><tr className="fw-bold"><td colSpan={2}>Total</td><td className="text-center">{filas.reduce((s, x) => s + cantidadDe(x), 0)}</td><td className="text-end text-nowrap">{soles(costo)}</td><td className="text-end text-nowrap">{soles(venta)}</td><td className="text-end text-nowrap text-success">{soles(venta - costo)}</td><td /></tr></tfoot>
+            <tfoot><tr className="fw-bold"><td colSpan={3}>Total</td><td className="text-center">{filas.reduce((s, x) => s + cantidadDe(x), 0)}</td><td className="text-end text-nowrap">{soles(costo)}</td><td className="text-end text-nowrap">{soles(venta)}</td><td className="text-end text-nowrap text-success">{soles(venta - costo)}</td><td /></tr></tfoot>
           )}
         </table>
       </div></div>
@@ -342,10 +350,12 @@ export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, material
             <input ref={campo} id={`${pre}-concepto`} list={`${pre}-conceptos`} autoComplete="off" className="form-control form-control-lg" placeholder={material ? 'Ej: Tela negra' : 'Ej: Luz'} value={form.concepto} onChange={(e) => escribirConcepto(e.target.value)} />
             <Sugerencias id={`${pre}-conceptos`} nombres={[...previas.values()].reverse().map((x) => x.concepto)} />
           </div>
-          <div className="col-md-3"><Soles id={`${pre}-monto`} etiqueta={columnaMonto} valor={form.monto} onCambio={(v) => { auto.current = false; setForm((f) => ({ ...f, monto: v })) }} /></div>
-          <div className="col-md-2"><BotonesForm editando={!!form.id} guardando={guardando} onCancelar={limpiar} /></div>
+          <div className="col-md-5"><Soles id={`${pre}-monto`} etiqueta={columnaMonto} valor={form.monto} onCambio={(v) => { auto.current = false; setForm((f) => ({ ...f, monto: v })) }} /></div>
         </div>
         {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
+        <div className="d-flex justify-content-end mt-3">
+          <div className="boton-anotar"><BotonesForm editando={!!form.id} guardando={guardando} onCancelar={limpiar} /></div>
+        </div>
       </div></form>
 
       <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">

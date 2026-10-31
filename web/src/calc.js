@@ -20,6 +20,8 @@ export const etapaDe = (l) => {
 export const TALLAS = ['M', 'Estándar', 'L']
 // Precio por mayor según la talla (se puede cambiar al anotar la venta)
 export const PRECIOS = { M: 14, 'Estándar': 14, L: 16 }
+// Costo estimado por prenda hasta que se anote uno real
+export const COSTO_ESTIMADO = 10
 
 export const MODELOS = ['Cuello redondo', 'Cuello V']
 export const TIPOS_DISENO = ['Liso', 'Con estampado']
@@ -90,6 +92,12 @@ let disenosActuales = []
 export const registrarDisenos = (lista) => { disenosActuales = lista || [] }
 export const disenoPorId = (id) => disenosActuales.find((d) => String(d.id) === String(id)) || null
 export const nombreDiseno = (id) => { const d = disenoPorId(id); return d ? d.nombre : '' }
+// Tallas que maneja un diseño (se guardan como "M,L"); si no tiene marcadas, todas
+export const tallasDeDiseno = (d) => {
+  const marcadas = String((d && d.tallas) || '').split(',').map((t) => t.trim())
+  const validas = TALLAS.filter((t) => marcadas.includes(t))
+  return validas.length ? validas : TALLAS
+}
 
 // Cantidades por talla: se guardan en la hoja como texto JSON, p. ej. {"M":40,"L":28}
 export const leerTallas = (v) => {

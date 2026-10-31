@@ -1,11 +1,13 @@
 import React, { useState } from 'react'
-import { MODELOS, TIPOS_DISENO } from '../calc.js'
+import { MODELOS, TIPOS_DISENO, TALLAS, tallasDeDiseno } from '../calc.js'
 
 // Formulario corto para crear (o renombrar) un diseño. Devuelve el id con onListo.
 export default function NuevoDiseno({ datos, guardar, onListo, onCancelar, diseno = null }) {
   const [nombre, setNombre] = useState(diseno ? diseno.nombre : '')
   const [cuello, setCuello] = useState(diseno ? diseno.cuello : '')
   const [tipo, setTipo] = useState(diseno && diseno.tipo ? diseno.tipo : TIPOS_DISENO[0])
+  const [tallas, setTallas] = useState(tallasDeDiseno(diseno))
+  const alternarTalla = (t) => setTallas((x) => (x.includes(t) ? x.filter((y) => y !== t) : TALLAS.filter((y) => x.includes(y) || y === t)))
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
 
@@ -14,11 +16,12 @@ export default function NuevoDiseno({ datos, guardar, onListo, onCancelar, disen
     const n = nombre.trim()
     if (!n) return setError('Escribe el nombre del diseño.')
     if (!cuello) return setError('Elige el cuello: redondo o V.')
+    if (!tallas.length) return setError('Marca al menos una talla.')
     const repetido = (datos.disenos || []).find((d) => d.nombre.trim().toLowerCase() === n.toLowerCase() && (!diseno || String(d.id) !== String(diseno.id)))
     if (repetido) return setError(`Ya tienes un diseño llamado «${repetido.nombre}». Elige otro nombre.`)
     setGuardando(true)
     try {
-      const id = await guardar('disenos', { ...(diseno ? { id: diseno.id } : {}), nombre: n, cuello, tipo }, diseno ? 'Diseño actualizado' : `Diseño «${n}» creado`)
+      const id = await guardar('disenos', { ...(diseno ? { id: diseno.id } : {}), nombre: n, cuello, tipo, tallas: tallas.join(',') }, diseno ? 'Diseño actualizado' : `Diseño «${n}» creado`)
       if (onListo) onListo(id)
     } catch (e) {
       setError('No se pudo guardar. Revisa el internet y vuelve a intentar.')
@@ -46,6 +49,12 @@ export default function NuevoDiseno({ datos, guardar, onListo, onCancelar, disen
           <button key={t} type="button" className={'btn btn-lg btn-outline-secondary opcion flex-fill ' + (tipo === t ? 'active' : '')} onClick={() => setTipo(t)}>
             <span className="me-2">{t === 'Liso' ? '⬜' : '🎨'}</span>{t}
           </button>
+        ))}
+      </div>
+      <div className="fw-bold mb-2">Tallas</div>
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        {TALLAS.map((t) => (
+          <button key={t} type="button" aria-pressed={tallas.includes(t)} className={'btn btn-lg btn-outline-secondary opcion flex-fill ' + (tallas.includes(t) ? 'active' : '')} onClick={() => alternarTalla(t)}>{t}</button>
         ))}
       </div>
       {error && <div className="alert alert-danger py-2">{error}</div>}

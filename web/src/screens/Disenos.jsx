@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { TALLAS, productos, etapaDe, etapaTanda, cortadosDeTanda, recibidosDeTanda, sumaTallas, fotosDe } from '../calc.js'
+import { TALLAS, productos, etapaDe, etapaTanda, cortadosDeTanda, recibidosDeTanda, sumaTallas, fotosDe, tallasDeDiseno } from '../calc.js'
 import NuevoDiseno from './NuevoDiseno.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import Fotos, { FotoMini } from './Fotos.jsx'
@@ -58,7 +58,8 @@ export default function Disenos({ datos, guardar, borrar, ir }) {
                       <div className="fs-3 fw-bold text-marca">{d.nombre}</div>
                       <div className="mb-1">
                         <span className={'badge me-1 ' + (d.tipo === 'Con estampado' ? 'text-bg-warning' : 'text-bg-light border')}>{d.tipo === 'Con estampado' ? '🎨 Con estampado' : '⬜ Liso'}</span>
-                        <span className="badge text-bg-light border">{d.cuello}</span>
+                        <span className="badge text-bg-light border me-1">{d.cuello}</span>
+                        {tallasDeDiseno(d).map((t) => <span key={t} className="badge text-bg-light border me-1">{t}</span>)}
                       </div>
                       <div className="text-secondary">
                         {total} en stock{enTaller > 0 && ` · ${enTaller} en el taller`}{empaquetando > 0 && ` · ${empaquetando} empaquetando`}

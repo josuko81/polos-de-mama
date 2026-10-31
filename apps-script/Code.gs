@@ -37,7 +37,7 @@ const TABLAS = {
   },
   disenos: {
     hoja: 'Diseños',
-    cols: [['id', 'ID'], ['nombre', 'Nombre del diseño'], ['cuello', 'Cuello'], ['tipo', 'Liso o estampado'], ['fotos', 'Fotos (ids en Drive)']],
+    cols: [['id', 'ID'], ['nombre', 'Nombre del diseño'], ['cuello', 'Cuello'], ['tipo', 'Liso o estampado'], ['fotos', 'Fotos (ids en Drive)'], ['tallas', 'Tallas']],
   },
   gastos: {
     hoja: 'Gastos',
