@@ -41,7 +41,8 @@ function cuentasMes(datos, mes) {
   const suma = (lista) => lista.reduce((s, g) => s + numero(g.monto), 0)
   const material = suma(gastos.filter((g) => g.categoria === CAT_MATERIAL))
   const mensual = suma(gastos.filter((g) => g.categoria !== CAT_MATERIAL))
-  return { vendido, ganancia, material, mensual, queda: ganancia - mensual }
+  // "Dinero del mes" sí resta el material: es la plata que entró menos la que salió
+  return { vendido, ganancia, material, mensual, queda: ganancia - mensual, dinero: vendido - material - mensual }
 }
 
 function Encabezado({ titulo, mes, setMes }) {
@@ -536,6 +537,8 @@ function CuentasDelMes({ datos, mes }) {
       {fila('Gastos del mes', c.mensual)}
       <div className="d-flex justify-content-between pt-3"><span className="fs-4 fw-bold">Me quedó</span><span className={'fs-3 fw-bold ' + (c.queda < 0 ? 'text-danger' : 'text-success')}>{soles(c.queda)}</span></div>
       <div className="small text-secondary">Ganancia de las prendas menos gastos del mes. La compra de material no se resta porque ya está en el costo de cada prenda.</div>
+      <div className="d-flex justify-content-between pt-3 mt-3 border-top"><span className="fs-4 fw-bold">Dinero del mes</span><span className={'fs-3 fw-bold ' + (c.dinero < 0 ? 'text-danger' : 'text-success')}>{soles(c.dinero)}</span></div>
+      <div className="small text-secondary">Lo vendido menos la compra de material y los gastos del mes: la plata que entró y salió. Si sale negativo porque compraste material, no es pérdida: se recupera cuando vendas esas prendas.</div>
     </div></div>
   )
 }
@@ -550,7 +553,8 @@ export default function Cuaderno(props) {
     { id: 'ventas', icono: '💰', titulo: 'Ventas', total: c.vendido },
     { id: 'material', icono: '🧵', titulo: 'Compra de material', total: c.material },
     { id: 'gastos', icono: '🧾', titulo: 'Gasto mensual', total: c.mensual },
-    { id: 'queda', icono: '📊', titulo: 'Me quedó', total: c.queda },
+    { id: 'queda', icono: '📊', titulo: 'Me quedó', total: c.queda, resultado: true },
+    { id: 'dinero', icono: '💵', titulo: 'Dinero del mes', total: c.dinero, resultado: true },
   ]
   const tarjeta = TARJETAS.find((t) => t.id === abierta)
   return (
@@ -558,11 +562,11 @@ export default function Cuaderno(props) {
       <Encabezado titulo="📒 Cuaderno" mes={mes} setMes={setMes} />
       <div className="row g-3">
         {TARJETAS.map((t) => (
-          <div className="col-sm-6 col-xl-3" key={t.id}>
-            <button className={'btn border-0 shadow-sm tarjeta-lote w-100 h-100 text-start p-4 ' + (t.id === 'queda' ? (t.total < 0 ? 'btn-danger' : 'btn-success') : 'btn-light')} onClick={() => setAbierta(t.id)}>
+          <div className="col-sm-6 col-lg-4" key={t.id}>
+            <button className={'btn border-0 shadow-sm tarjeta-lote w-100 h-100 text-start p-4 ' + (t.resultado ? (t.total < 0 ? 'btn-danger' : 'btn-success') : 'btn-light')} onClick={() => setAbierta(t.id)}>
               <span className="d-block mb-2" style={{ fontSize: '2.6rem' }}>{t.icono}</span>
-              <span className={'d-block fs-4 fw-bold ' + (t.id === 'queda' ? '' : 'text-marca')}>{t.titulo}</span>
-              <span className={'d-block small ' + (t.id === 'queda' ? '' : 'text-secondary')}>Total de {MESES[Number(mes.slice(5)) - 1]}</span>
+              <span className={'d-block fs-4 fw-bold ' + (t.resultado ? '' : 'text-marca')}>{t.titulo}</span>
+              <span className={'d-block small ' + (t.resultado ? '' : 'text-secondary')}>Total de {MESES[Number(mes.slice(5)) - 1]}</span>
               <span className="d-block numero-grande">{soles(t.total)}</span>
             </button>
           </div>
@@ -573,7 +577,7 @@ export default function Cuaderno(props) {
           {tarjeta.id === 'ventas' && <VentasCuaderno {...props} mesFijo={mes} />}
           {tarjeta.id === 'material' && <ComprasCuaderno {...props} mesFijo={mes} />}
           {tarjeta.id === 'gastos' && <GastosCuaderno {...props} mesFijo={mes} />}
-          {tarjeta.id === 'queda' && <CuentasDelMes datos={datos} mes={mes} />}
+          {tarjeta.resultado && <CuentasDelMes datos={datos} mes={mes} />}
         </Ventana>
       )}
     </>
