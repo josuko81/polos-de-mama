@@ -1,8 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { soles, hoy, mesDe, fechaCorta, MESES } from '../calc.js'
+import { soles, hoy, mesDe, fechaCorta, fotosDe, MESES } from '../calc.js'
 import { moverMes } from './Resumen.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import Ventana from './Ventana.jsx'
+import NuevoDiseno from './NuevoDiseno.jsx'
+import { FotoMini } from './Fotos.jsx'
 
 // Las 3 tablas del cuaderno de mamá, con sus mismas columnas, y el resumen del mes.
 // La app sugiere lo ya anotado para que escriba lo mínimo.
@@ -83,24 +85,32 @@ function BotonesForm({ editando, guardando, onCancelar }) {
 export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const [mesPropio, setMes] = useState(mesDe(hoy()))
   const mes = mesFijo || mesPropio
-  const vacio = () => ({ id: '', fecha: fechaDeMes(mes), prenda: '', cantidad: '1', costo: '', venta: '' })
+  const vacio = () => ({ id: '', fecha: fechaDeMes(mes), disenoId: '', prenda: '', cantidad: '1', costo: '', venta: '' })
   const [form, setForm] = useState(vacio)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
   const auto = useRef(false) // costo y venta los puso la sugerencia, no ella
   const campo = useRef(null)
   const lista = datos.cuaderno || []
+  const [creandoDiseno, setCreandoDiseno] = useState(false)
+  const disenos = [...(datos.disenos || [])].sort((a, b) => a.nombre.localeCompare(b.nombre))
+  const previasPorDiseno = ultimasPorNombre(lista, 'disenoId')
   const previas = ultimasPorNombre(lista, 'prenda')
   const filas = delMes(lista, mes)
 
   useEffect(() => { setForm((f) => (f.id ? f : { ...f, fecha: fechaDeMes(mes) })) }, [mes])
 
-  const escribirPrenda = (v) => setForm((f) => {
-    const p = previas.get(norm(v))
-    if (!p || f.id || !(auto.current || (!f.costo && !f.venta))) return { ...f, prenda: v }
-    auto.current = true
-    return { ...f, prenda: v, costo: porUnidad(p, 'costo'), venta: porUnidad(p, 'venta') }
-  })
+  // Al tocar un diseño se llenan sus últimos precios y el cursor pasa a Cantidad
+  const elegirDiseno = (d) => {
+    const p = previasPorDiseno.get(norm(d.id)) || previas.get(norm(d.nombre))
+    setForm((f) => {
+      if (!p || f.id || !(auto.current || (!f.costo && !f.venta))) return { ...f, disenoId: d.id, prenda: d.nombre }
+      auto.current = true
+      return { ...f, disenoId: d.id, prenda: d.nombre, costo: porUnidad(p, 'costo'), venta: porUnidad(p, 'venta') }
+    })
+    campo.current.focus()
+    campo.current.select()
+  }
   const escribirMonto = (k) => (v) => { auto.current = false; setForm((f) => ({ ...f, [k]: v })) }
   const limpiar = () => { auto.current = false; setForm(vacio()) }
   const cant = numero(form.cantidad)
@@ -109,7 +119,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const editar = (x) => {
     setError('')
     auto.current = false
-    setForm({ id: x.id, fecha: x.fecha, prenda: x.prenda, cantidad: String(cantidadDe(x)), costo: porUnidad(x, 'costo'), venta: porUnidad(x, 'venta') })
+    setForm({ id: x.id, fecha: x.fecha, disenoId: x.disenoId || '', prenda: x.prenda, cantidad: String(cantidadDe(x)), costo: porUnidad(x, 'costo'), venta: porUnidad(x, 'venta') })
     campo.current.scrollIntoView({ block: 'center' })
     campo.current.focus()
   }
@@ -117,15 +127,17 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const anotar = async (e) => {
     e.preventDefault()
     setError('')
-    if (!form.prenda.trim()) return setError('Escribe la prenda.')
+    // El nombre sale del diseño; las filas antiguas sin diseño conservan el que tenían
+    const diseno = disenos.find((d) => String(d.id) === String(form.disenoId))
+    const prenda = diseno ? diseno.nombre : form.prenda
+    if (!prenda) return setError('Elige la prenda.')
     if (!cant) return setError('Escribe la cantidad.')
     if (!numero(form.venta)) return setError('Escribe la venta.')
-    const previa = previas.get(norm(form.prenda))
     setGuardando(true)
     try {
       await guardar('cuaderno', {
         ...(form.id ? { id: form.id } : {}), fecha: form.fecha,
-        prenda: previa ? previa.prenda : form.prenda.trim(), cantidad: cant, costo: totalCosto, venta: totalVenta,
+        disenoId: form.disenoId, prenda, cantidad: cant, costo: totalCosto, venta: totalVenta,
       }, form.id ? 'Cambios guardados' : 'Venta anotada')
       limpiar()
       campo.current.focus()
@@ -141,21 +153,40 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   return (
     <>
       {!mesFijo && <Encabezado titulo="💰 Ventas" mes={mes} setMes={setMes} />}
+      {/* Va fuera del formulario de la venta: un form no puede ir dentro de otro */}
+      {creandoDiseno && (
+        <div className="mb-3">
+          <NuevoDiseno datos={datos} guardar={guardar} onCancelar={() => setCreandoDiseno(false)}
+            onListo={(id) => { setCreandoDiseno(false); setForm((f) => ({ ...f, disenoId: id })); campo.current.focus() }} />
+        </div>
+      )}
       <form className="card border-0 shadow-sm mb-4" onSubmit={anotar}><div className="card-body p-4">
         {form.id && <div className="fw-bold text-marca mb-2">✏️ Corrigiendo esta venta</div>}
+        <div className="fw-bold mb-2">Prenda</div>
+        <div className="d-flex flex-wrap gap-2 mb-3">
+          {disenos.map((d) => (
+            <button key={d.id} type="button" aria-pressed={String(form.disenoId) === String(d.id)}
+              className={'btn btn-outline-secondary opcion text-start p-2 opcion-prenda ' + (String(form.disenoId) === String(d.id) ? 'active' : '')} onClick={() => elegirDiseno(d)}>
+              <span className="d-flex align-items-center gap-2">
+                {fotosDe(d).length ? <FotoMini de={d} tam="3.5rem" /> : <span className="foto-vacia">👕</span>}
+                <span>
+                  <span className="d-block fw-bold">{d.nombre}</span>
+                  <span className="d-block small">{d.cuello}</span>
+                </span>
+              </span>
+            </button>
+          ))}
+          {!creandoDiseno && <button type="button" className="btn btn-outline-warning border-2 border-dashed" onClick={() => setCreandoDiseno(true)}>＋ Nuevo diseño</button>}
+        </div>
+        {form.id && !form.disenoId && <div className="small text-secondary mb-3">Anotada antes como «{form.prenda}». Si eliges un diseño, se cambia.</div>}
         <div className="row g-3 align-items-end">
-          <div className="col-md-6 order-md-2">
-            <label htmlFor="v-prenda" className="fw-bold mb-1">Prenda</label>
-            <input ref={campo} id="v-prenda" list="v-prendas" autoComplete="off" className="form-control form-control-lg" placeholder="Ej: Polo Clásico M" value={form.prenda} onChange={(e) => escribirPrenda(e.target.value)} />
-            <Sugerencias id="v-prendas" nombres={[...previas.values()].reverse().map((x) => x.prenda)} />
-          </div>
           <div className="col-md-3 order-md-1">
             <label htmlFor="v-fecha" className="fw-bold mb-1">Fecha</label>
             <input id="v-fecha" type="date" className="form-control form-control-lg" value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
           </div>
           <div className="col-md-3 order-md-3">
             <label htmlFor="v-cantidad" className="fw-bold mb-1">Cantidad</label>
-            <input id="v-cantidad" className="form-control form-control-lg text-center fw-bold" inputMode="numeric" value={form.cantidad}
+            <input ref={campo} id="v-cantidad" className="form-control form-control-lg text-center fw-bold" inputMode="numeric" value={form.cantidad}
               onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setForm((f) => ({ ...f, cantidad: v })) }} />
           </div>
           <div className="col-6 col-md-3 order-md-4"><Soles id="v-costo" etiqueta="Costo de cada una" valor={form.costo} onCambio={escribirMonto('costo')} /></div>

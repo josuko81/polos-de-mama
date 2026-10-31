@@ -21,6 +21,8 @@ h1, h2 { color: var(--marca); }
 .columna-lote { background: #e2eae7; }
 .border-dashed { border-style: dashed !important; }
 .tabla-tallas input { min-width: 4.2rem; }
+.opcion-prenda { min-width: 12rem; }
+.foto-vacia { display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; font-size: 1.8rem; border-radius: .75rem; background: #dfe6e3; }
 /* Ventanas de producción: más anchas que el modal-xl normal */
 @media (min-width: 1200px) { .ventana { --bs-modal-width: min(1400px, 94vw); } }
 /* Ancho de la página: aprovecha pantallas grandes sin estirarse de más */

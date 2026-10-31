@@ -47,6 +47,7 @@ const MENU_SIMPLE = [
   { id: 'c-material', texto: 'Material', icono: '🧵', pestanas: [{ id: 'c-material' }] },
   { id: 'c-gastos', texto: 'Gastos', icono: '🧾', pestanas: [{ id: 'c-gastos' }] },
   { id: 'c-resumen', texto: 'Resumen', icono: '📊', pestanas: [{ id: 'c-resumen' }] },
+  { id: 'c-disenos', texto: 'Diseños', icono: '👕', pestanas: [{ id: 'disenos' }] },
 ]
 const CLAVE_COMPLETO = 'polos-de-mama-opciones-completas'
 const leerCompleto = () => { try { return localStorage.getItem(CLAVE_COMPLETO) === '1' } catch (e) { return false } }
