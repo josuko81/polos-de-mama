@@ -29,7 +29,7 @@ const TABLAS = {
   cuaderno: {
     hoja: 'Cuaderno',
     // costo y venta son el total de la fila (cantidad × precio por unidad)
-    cols: [['id', 'ID'], ['fecha', 'Fecha'], ['prenda', 'Prenda'], ['costo', 'Costo total S/'], ['venta', 'Venta total S/'], ['cantidad', 'Cantidad'], ['disenoId', 'Diseño (id)']],
+    cols: [['id', 'ID'], ['fecha', 'Fecha'], ['prenda', 'Prenda'], ['costo', 'Costo total S/'], ['venta', 'Venta total S/'], ['cantidad', 'Cantidad'], ['disenoId', 'Diseño (id)'], ['talla', 'Talla']],
   },
   clientes: {
     hoja: 'Clientes',

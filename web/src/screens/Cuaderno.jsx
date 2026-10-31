@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { soles, hoy, mesDe, fechaCorta, fotosDe, MESES } from '../calc.js'
+import { soles, hoy, mesDe, fechaCorta, fotosDe, MESES, TALLAS, PRECIOS } from '../calc.js'
 import { moverMes } from './Resumen.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import Ventana from './Ventana.jsx'
@@ -85,7 +85,7 @@ function BotonesForm({ editando, guardando, onCancelar }) {
 export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const [mesPropio, setMes] = useState(mesDe(hoy()))
   const mes = mesFijo || mesPropio
-  const vacio = () => ({ id: '', fecha: fechaDeMes(mes), disenoId: '', prenda: '', cantidad: '1', costo: '', venta: '' })
+  const vacio = () => ({ id: '', fecha: fechaDeMes(mes), disenoId: '', prenda: '', talla: '', cantidad: '1', costo: '', venta: '' })
   const [form, setForm] = useState(vacio)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -100,14 +100,25 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
 
   useEffect(() => { setForm((f) => (f.id ? f : { ...f, fecha: fechaDeMes(mes) })) }, [mes])
 
-  // Al tocar un diseño se llenan sus últimos precios y el cursor pasa a Cantidad
-  const elegirDiseno = (d) => {
-    const p = previasPorDiseno.get(norm(d.id)) || previas.get(norm(d.nombre))
-    setForm((f) => {
-      if (!p || f.id || !(auto.current || (!f.costo && !f.venta))) return { ...f, disenoId: d.id, prenda: d.nombre }
-      auto.current = true
-      return { ...f, disenoId: d.id, prenda: d.nombre, costo: porUnidad(p, 'costo'), venta: porUnidad(p, 'venta') }
-    })
+  const previasPorTalla = ultimasPorNombre(lista.map((x) => ({ ...x, clave: `${x.disenoId || x.prenda}|${x.talla || ''}` })), 'clave')
+
+  // Sugiere precios: los de ese diseño y talla; si es la primera vez, el costo del
+  // diseño y el precio por mayor de la talla. Nunca pisa lo que ella escribió.
+  const conPrecios = (f, cambios) => {
+    const n = { ...f, ...cambios }
+    if (f.id || !(auto.current || (!f.costo && !f.venta))) return n
+    const exacta = n.talla ? previasPorTalla.get(norm(`${n.disenoId}|${n.talla}`)) : null
+    const delDiseno = exacta || previasPorDiseno.get(norm(n.disenoId)) || previas.get(norm(n.prenda))
+    const costo = delDiseno ? porUnidad(delDiseno, 'costo') : ''
+    const venta = exacta ? porUnidad(exacta, 'venta') : PRECIOS[n.talla] ? String(PRECIOS[n.talla]) : delDiseno ? porUnidad(delDiseno, 'venta') : ''
+    if (!costo && !venta) return n
+    auto.current = true
+    return { ...n, costo, venta }
+  }
+  const elegirDiseno = (d) => setForm((f) => conPrecios(f, { disenoId: d.id, prenda: d.nombre }))
+  // Al tocar la talla el cursor pasa a Cantidad
+  const elegirTalla = (t) => {
+    setForm((f) => conPrecios(f, { talla: t }))
     campo.current.focus()
     campo.current.select()
   }
@@ -119,7 +130,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const editar = (x) => {
     setError('')
     auto.current = false
-    setForm({ id: x.id, fecha: x.fecha, disenoId: x.disenoId || '', prenda: x.prenda, cantidad: String(cantidadDe(x)), costo: porUnidad(x, 'costo'), venta: porUnidad(x, 'venta') })
+    setForm({ id: x.id, fecha: x.fecha, disenoId: x.disenoId || '', prenda: x.prenda, talla: x.talla || '', cantidad: String(cantidadDe(x)), costo: porUnidad(x, 'costo'), venta: porUnidad(x, 'venta') })
     campo.current.scrollIntoView({ block: 'center' })
     campo.current.focus()
   }
@@ -131,13 +142,14 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
     const diseno = disenos.find((d) => String(d.id) === String(form.disenoId))
     const prenda = diseno ? diseno.nombre : form.prenda
     if (!prenda) return setError('Elige la prenda.')
+    if (diseno && !form.talla) return setError('Elige la talla.')
     if (!cant) return setError('Escribe la cantidad.')
     if (!numero(form.venta)) return setError('Escribe la venta.')
     setGuardando(true)
     try {
       await guardar('cuaderno', {
         ...(form.id ? { id: form.id } : {}), fecha: form.fecha,
-        disenoId: form.disenoId, prenda, cantidad: cant, costo: totalCosto, venta: totalVenta,
+        disenoId: form.disenoId, prenda, talla: form.talla, cantidad: cant, costo: totalCosto, venta: totalVenta,
       }, form.id ? 'Cambios guardados' : 'Venta anotada')
       limpiar()
       campo.current.focus()
@@ -178,6 +190,16 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
           ))}
           {!creandoDiseno && <button type="button" className="btn btn-outline-warning border-2 border-dashed" onClick={() => setCreandoDiseno(true)}>＋ Nuevo diseño</button>}
         </div>
+        {form.disenoId && (
+          <>
+            <div className="fw-bold mb-2">Talla</div>
+            <div className="d-flex flex-wrap gap-2 mb-3">
+              {TALLAS.map((t) => (
+                <button key={t} type="button" aria-pressed={form.talla === t} className={'btn btn-lg btn-outline-secondary opcion px-4 ' + (form.talla === t ? 'active' : '')} onClick={() => elegirTalla(t)}>{t}</button>
+              ))}
+            </div>
+          </>
+        )}
         {form.id && !form.disenoId && <div className="small text-secondary mb-3">Anotada antes como «{form.prenda}». Si eliges un diseño, se cambia.</div>}
         <div className="row g-3 align-items-end">
           <div className="col-md-3 order-md-1">
@@ -209,7 +231,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
             {filas.map((x) => (
               <tr key={x.id} className={String(form.id) === String(x.id) ? 'table-warning' : ''}>
                 <td className="text-nowrap">{fechaCorta(x.fecha)}</td>
-                <td>{x.prenda}</td>
+                <td>{x.prenda}{x.talla && <span className="badge text-bg-light border ms-2">{x.talla}</span>}</td>
                 <td className="text-center">{cantidadDe(x)}</td>
                 <td className="text-end text-nowrap">{soles(x.costo)}</td>
                 <td className="text-end text-nowrap">{soles(x.venta)}</td>
