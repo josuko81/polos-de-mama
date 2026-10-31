@@ -24,6 +24,10 @@ function ultimasPorNombre(lista, campo) {
 }
 
 const textoMonto = (n) => (numero(n) ? String(n) : '')
+const redondear = (n) => Math.round(n * 100) / 100
+// Las filas guardan totales; las anotadas antes de existir la cantidad cuentan como 1
+const cantidadDe = (x) => numero(x.cantidad) || 1
+const porUnidad = (x, campo) => textoMonto(redondear(numero(x[campo]) / cantidadDe(x)))
 
 // Totales del mes: "Me quedó" no resta el material porque ya está en el costo de cada prenda
 function cuentasMes(datos, mes) {
@@ -79,7 +83,7 @@ function BotonesForm({ editando, guardando, onCancelar }) {
 export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const [mesPropio, setMes] = useState(mesDe(hoy()))
   const mes = mesFijo || mesPropio
-  const vacio = () => ({ id: '', fecha: fechaDeMes(mes), prenda: '', costo: '', venta: '' })
+  const vacio = () => ({ id: '', fecha: fechaDeMes(mes), prenda: '', cantidad: '1', costo: '', venta: '' })
   const [form, setForm] = useState(vacio)
   const [error, setError] = useState('')
   const [guardando, setGuardando] = useState(false)
@@ -95,14 +99,17 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
     const p = previas.get(norm(v))
     if (!p || f.id || !(auto.current || (!f.costo && !f.venta))) return { ...f, prenda: v }
     auto.current = true
-    return { ...f, prenda: v, costo: textoMonto(p.costo), venta: textoMonto(p.venta) }
+    return { ...f, prenda: v, costo: porUnidad(p, 'costo'), venta: porUnidad(p, 'venta') }
   })
   const escribirMonto = (k) => (v) => { auto.current = false; setForm((f) => ({ ...f, [k]: v })) }
   const limpiar = () => { auto.current = false; setForm(vacio()) }
+  const cant = numero(form.cantidad)
+  const totalCosto = redondear(cant * numero(form.costo))
+  const totalVenta = redondear(cant * numero(form.venta))
   const editar = (x) => {
     setError('')
     auto.current = false
-    setForm({ id: x.id, fecha: x.fecha, prenda: x.prenda, costo: textoMonto(x.costo), venta: textoMonto(x.venta) })
+    setForm({ id: x.id, fecha: x.fecha, prenda: x.prenda, cantidad: String(cantidadDe(x)), costo: porUnidad(x, 'costo'), venta: porUnidad(x, 'venta') })
     campo.current.scrollIntoView({ block: 'center' })
     campo.current.focus()
   }
@@ -111,13 +118,14 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
     e.preventDefault()
     setError('')
     if (!form.prenda.trim()) return setError('Escribe la prenda.')
+    if (!cant) return setError('Escribe la cantidad.')
     if (!numero(form.venta)) return setError('Escribe la venta.')
     const previa = previas.get(norm(form.prenda))
     setGuardando(true)
     try {
       await guardar('cuaderno', {
         ...(form.id ? { id: form.id } : {}), fecha: form.fecha,
-        prenda: previa ? previa.prenda : form.prenda.trim(), costo: numero(form.costo), venta: numero(form.venta),
+        prenda: previa ? previa.prenda : form.prenda.trim(), cantidad: cant, costo: totalCosto, venta: totalVenta,
       }, form.id ? 'Cambios guardados' : 'Venta anotada')
       limpiar()
       campo.current.focus()
@@ -136,34 +144,42 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
       <form className="card border-0 shadow-sm mb-4" onSubmit={anotar}><div className="card-body p-4">
         {form.id && <div className="fw-bold text-marca mb-2">✏️ Corrigiendo esta venta</div>}
         <div className="row g-3 align-items-end">
-          <div className="col-md-4 order-md-2">
+          <div className="col-md-6 order-md-2">
             <label htmlFor="v-prenda" className="fw-bold mb-1">Prenda</label>
-            <input ref={campo} id="v-prenda" list="v-prendas" autoComplete="off" className="form-control form-control-lg" placeholder="Ej: 12 polos Clásico M" value={form.prenda} onChange={(e) => escribirPrenda(e.target.value)} />
+            <input ref={campo} id="v-prenda" list="v-prendas" autoComplete="off" className="form-control form-control-lg" placeholder="Ej: Polo Clásico M" value={form.prenda} onChange={(e) => escribirPrenda(e.target.value)} />
             <Sugerencias id="v-prendas" nombres={[...previas.values()].reverse().map((x) => x.prenda)} />
           </div>
-          <div className="col-md-2 order-md-1">
+          <div className="col-md-3 order-md-1">
             <label htmlFor="v-fecha" className="fw-bold mb-1">Fecha</label>
             <input id="v-fecha" type="date" className="form-control form-control-lg" value={form.fecha} onChange={(e) => setForm((f) => ({ ...f, fecha: e.target.value }))} />
           </div>
-          <div className="col-6 col-md-2 order-md-3"><Soles id="v-costo" etiqueta="Costo" valor={form.costo} onCambio={escribirMonto('costo')} /></div>
-          <div className="col-6 col-md-2 order-md-4"><Soles id="v-venta" etiqueta="Venta" valor={form.venta} onCambio={escribirMonto('venta')} /></div>
-          <div className="col-md-2 order-md-5">
-            <div className="small text-secondary">Ganancia: <b>{soles(numero(form.venta) - numero(form.costo))}</b></div>
-            <BotonesForm editando={!!form.id} guardando={guardando} onCancelar={limpiar} />
+          <div className="col-md-3 order-md-3">
+            <label htmlFor="v-cantidad" className="fw-bold mb-1">Cantidad</label>
+            <input id="v-cantidad" className="form-control form-control-lg text-center fw-bold" inputMode="numeric" value={form.cantidad}
+              onChange={(e) => { const v = e.target.value.replace(/\D/g, ''); setForm((f) => ({ ...f, cantidad: v })) }} />
           </div>
+          <div className="col-6 col-md-3 order-md-4"><Soles id="v-costo" etiqueta="Costo de cada una" valor={form.costo} onCambio={escribirMonto('costo')} /></div>
+          <div className="col-6 col-md-3 order-md-5"><Soles id="v-venta" etiqueta="Venta de cada una" valor={form.venta} onCambio={escribirMonto('venta')} /></div>
+          <div className="col-md-3 order-md-6 small text-secondary" id="v-totales">
+            <div className="d-flex justify-content-between"><span>Costo total</span><b>{soles(totalCosto)}</b></div>
+            <div className="d-flex justify-content-between"><span>Venta total</span><b>{soles(totalVenta)}</b></div>
+            <div className="d-flex justify-content-between text-success"><span>Ganancia</span><b>{soles(totalVenta - totalCosto)}</b></div>
+          </div>
+          <div className="col-md-3 order-md-7"><BotonesForm editando={!!form.id} guardando={guardando} onCancelar={limpiar} /></div>
         </div>
         {error && <div className="alert alert-danger mt-3 mb-0">{error}</div>}
       </div></form>
 
       <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">
         <table className="table align-middle mb-0">
-          <thead><tr><th>Fecha</th><th>Prenda</th><th className="text-end">Costo</th><th className="text-end">Venta</th><th className="text-end">Ganancia</th><th /></tr></thead>
+          <thead><tr><th>Fecha</th><th>Prenda</th><th className="text-center">Cant.</th><th className="text-end">Costo</th><th className="text-end">Venta</th><th className="text-end">Ganancia</th><th /></tr></thead>
           <tbody>
-            {filas.length === 0 && <tr><td colSpan={6} className="text-secondary text-center py-4">No hay ventas en este mes.</td></tr>}
+            {filas.length === 0 && <tr><td colSpan={7} className="text-secondary text-center py-4">No hay ventas en este mes.</td></tr>}
             {filas.map((x) => (
               <tr key={x.id} className={String(form.id) === String(x.id) ? 'table-warning' : ''}>
                 <td className="text-nowrap">{fechaCorta(x.fecha)}</td>
                 <td>{x.prenda}</td>
+                <td className="text-center">{cantidadDe(x)}</td>
                 <td className="text-end text-nowrap">{soles(x.costo)}</td>
                 <td className="text-end text-nowrap">{soles(x.venta)}</td>
                 <td className="text-end text-nowrap fw-bold text-success">{soles(numero(x.venta) - numero(x.costo))}</td>
@@ -175,7 +191,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
             ))}
           </tbody>
           {filas.length > 0 && (
-            <tfoot><tr className="fw-bold"><td colSpan={2}>Total</td><td className="text-end text-nowrap">{soles(costo)}</td><td className="text-end text-nowrap">{soles(venta)}</td><td className="text-end text-nowrap text-success">{soles(venta - costo)}</td><td /></tr></tfoot>
+            <tfoot><tr className="fw-bold"><td colSpan={2}>Total</td><td className="text-center">{filas.reduce((s, x) => s + cantidadDe(x), 0)}</td><td className="text-end text-nowrap">{soles(costo)}</td><td className="text-end text-nowrap">{soles(venta)}</td><td className="text-end text-nowrap text-success">{soles(venta - costo)}</td><td /></tr></tfoot>
           )}
         </table>
       </div></div>

@@ -28,7 +28,8 @@ const TABLAS = {
   // Tabla 1 del cuaderno de mamá: cada prenda vendida con su costo y su venta
   cuaderno: {
     hoja: 'Cuaderno',
-    cols: [['id', 'ID'], ['fecha', 'Fecha'], ['prenda', 'Prenda'], ['costo', 'Costo S/'], ['venta', 'Venta S/']],
+    // costo y venta son el total de la fila (cantidad × precio por unidad)
+    cols: [['id', 'ID'], ['fecha', 'Fecha'], ['prenda', 'Prenda'], ['costo', 'Costo total S/'], ['venta', 'Venta total S/'], ['cantidad', 'Cantidad']],
   },
   clientes: {
     hoja: 'Clientes',

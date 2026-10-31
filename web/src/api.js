@@ -39,8 +39,8 @@ const EJEMPLO = {
       colores: '[{"color":"blanco","telas":[{"telaId":"t3","fraccion":0.5}],"cortadosT":{"M":20,"Estándar":20,"L":20}}]' },
   ],
   cuaderno: [
-    { id: 'n1', fecha: '2026-10-12', prenda: '12 polos Clásico M', costo: 96, venta: 168 },
-    { id: 'n2', fecha: '2026-10-20', prenda: '6 polos Corazón L', costo: 54, venta: 96 },
+    { id: 'n1', fecha: '2026-10-12', prenda: 'Polo Clásico M', cantidad: 12, costo: 96, venta: 168 },
+    { id: 'n2', fecha: '2026-10-20', prenda: 'Polo Corazón L', cantidad: 6, costo: 54, venta: 96 },
   ],
   clientes: [
     { id: 'c1', nombre: 'Sra. Rosa', telefono: '987654321', nota: 'Mayorista, puesto en Gamarra' },
