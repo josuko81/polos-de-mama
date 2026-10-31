@@ -36,7 +36,7 @@ function BarrasPorMes({ titulo, filas, claves, mes }) {
   return (
     <div className="panel-dash h-100">
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
-        <h2 className="fs-6 fw-bold mb-0">{titulo}</h2>
+        <h2 className="titulo-panel mb-0">{titulo}</h2>
         <div className="d-flex flex-wrap gap-3 small">
           {claves.map((k) => <span key={k} className="d-inline-flex align-items-center gap-1"><span className="leyenda-dash" style={{ background: SERIE[k].color }} />{SERIE[k].nombre}</span>)}
         </div>
@@ -83,7 +83,7 @@ function BarrasPorcentaje({ titulo, filas, vacio }) {
   const max = Math.max(...filas.map((f) => f.pct), 1)
   return (
     <div className="panel-dash h-100">
-      <h2 className="fs-6 fw-bold mb-2">{titulo}</h2>
+      <h2 className="titulo-panel mb-2">{titulo}</h2>
       {filas.length === 0 && <div className="text-secondary small py-3 text-center">{vacio}</div>}
       {filas.map((f) => (
         <div key={f.nombre} className="fila-pct">
@@ -102,9 +102,9 @@ function Indicador({ titulo, valor, detalle }) {
   return (
     <div className="col-6 col-lg-3">
       <div className="panel-dash h-100 py-1">
-        <div className="small text-secondary">{titulo}</div>
+        <div className="text-secondary">{titulo}</div>
         <div className="d-flex flex-wrap align-items-baseline gap-2">
-          <span className="fs-5 fw-bold">{valor}</span>
+          <span className="fs-4 fw-bold">{valor}</span>
           {detalle && <span className="small text-secondary">{detalle}</span>}
         </div>
       </div>
@@ -145,10 +145,10 @@ export default function Dashboard({ datos, mes }) {
   return (
     <div className="dashboard mt-3">
       <div className="row g-2 mb-2">
-        <Indicador titulo="Margen de ganancia" valor={`${porcentaje(c.ganancia, c.vendido)}%`} detalle="De cada S/ 100 vendidos" />
-        <Indicador titulo="Ganancia por polo" valor={soles(c.polos ? c.ganancia / c.polos : 0)} detalle="En promedio" />
+        <Indicador titulo="De lo vendido, ganas" valor={`${porcentaje(c.ganancia, c.vendido)}%`} />
+        <Indicador titulo="Ganas por cada polo" valor={soles(c.polos ? c.ganancia / c.polos : 0)} />
         <Indicador titulo="Polos vendidos" valor={c.polos} detalle={cambio} />
-        <Indicador titulo="Gastos sobre ventas" valor={`${porcentaje(c.mensual, c.vendido)}%`} detalle="Sin contar material" />
+        <Indicador titulo="De lo vendido, va a gastos" valor={`${porcentaje(c.mensual, c.vendido)}%`} />
       </div>
       <div className="row g-2 mb-2">
         <div className="col-lg-6"><BarrasPorMes titulo="Ventas y ganancia por mes (S/)" filas={filas} claves={['vendido', 'ganancia']} mes={mes} /></div>

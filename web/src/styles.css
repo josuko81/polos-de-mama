@@ -22,17 +22,22 @@ h1, h2 { color: var(--marca); }
 .border-dashed { border-style: dashed !important; }
 .tabla-tallas input { min-width: 4.2rem; }
 /* Tarjetas pequeñas del Cuaderno */
-.tarjeta-mini { display: flex; align-items: center; gap: .5rem; padding: .4rem .6rem; text-align: left; }
-.tarjeta-mini .icono-mini { font-size: 1.4rem; line-height: 1; }
-.tarjeta-mini .titulo-mini { display: block; font-size: .8rem; line-height: 1.1; }
-.tarjeta-mini .monto-mini { display: block; font-size: 1.1rem; font-weight: 700; line-height: 1.2; }
+.tarjeta-mini { display: flex; align-items: center; gap: .6rem; padding: .6rem .8rem; text-align: left; border-radius: .9rem; --bs-btn-bg: var(--fondo); --bs-btn-hover-bg: var(--fondo); --bs-btn-active-bg: var(--fondo); --bs-btn-color: var(--tinta); --bs-btn-hover-color: var(--tinta); --bs-btn-active-color: var(--tinta); }
+.mini-ventas { --fondo: #e8f1fb; --tinta: #174a80; }
+.mini-material { --fondo: #fdefe8; --tinta: #8a3a1a; }
+.mini-gastos { --fondo: #f1eefb; --tinta: #453a8c; }
+.mini-bien { --fondo: #e4f4e8; --tinta: #1e6b3a; }
+.mini-mal { --fondo: #fce9e8; --tinta: #a32020; }
+.tarjeta-mini .icono-mini { font-size: 1.7rem; line-height: 1; }
+.tarjeta-mini .titulo-mini { display: block; font-size: .95rem; line-height: 1.15; }
+.tarjeta-mini .monto-mini { display: block; font-size: 1.3rem; font-weight: 700; line-height: 1.25; }
 /* Dashboard: colores de datos validados con el script de dataviz */
 .dashboard { --serie-1: #2a78d6; --serie-2: #eb6834; --serie-3: #1baf7a; --serie-4: #eda100; --linea: #e1e0d9; --eje: #c3c2b7; --apagado: #6f6d68; }
-.panel-dash { background: #fff; border-radius: .5rem; padding: .6rem .8rem; box-shadow: 0 1px 2px rgba(0, 0, 0, .06); }
-.leyenda-dash { display: inline-block; width: .7rem; height: .7rem; border-radius: 2px; }
-.plot-dash { position: relative; height: 115px; margin-left: 2.6rem; }
+.panel-dash { background: #fff; border-radius: .9rem; padding: .8rem 1rem; box-shadow: 0 1px 3px rgba(0, 0, 0, .05); }
+.leyenda-dash { display: inline-block; width: .8rem; height: .8rem; border-radius: 3px; }
+.plot-dash { position: relative; height: 125px; margin-left: 3rem; }
 .marca-dash { position: absolute; left: 0; right: 0; border-top: 1px solid var(--linea); }
-.marca-dash span { position: absolute; right: 100%; top: -.55rem; padding-right: .35rem; font-size: .68rem; color: var(--apagado); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.marca-dash span { position: absolute; right: 100%; top: -.55rem; padding-right: .35rem; font-size: .8rem; color: var(--apagado); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .marca-cero { border-top-color: var(--eje); }
 .columnas-dash { position: absolute; inset: 0; display: flex; }
 .columna-dash { position: relative; flex: 1 1 0; outline-offset: -2px; border-radius: 4px; }
@@ -41,15 +46,28 @@ h1, h2 { color: var(--marca); }
 .barra-dash { position: relative; width: min(38%, 1.3rem); }
 .hacia-arriba { border-radius: 4px 4px 0 0; }
 .hacia-abajo { border-radius: 0 0 4px 4px; }
-.tip-dash { display: none; position: absolute; z-index: 5; bottom: 100%; left: 50%; transform: translateX(-50%); min-width: 9rem; padding: .3rem .5rem; font-size: .75rem; background: #fff; border-radius: .4rem; box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
+.tip-dash { display: none; position: absolute; z-index: 5; bottom: 100%; left: 50%; transform: translateX(-50%); min-width: 11rem; padding: .4rem .6rem; font-size: .9rem; background: #fff; border-radius: .4rem; box-shadow: 0 2px 8px rgba(0, 0, 0, .2); }
 .columna-dash:hover .tip-dash, .columna-dash:focus .tip-dash { display: block; }
 .columna-dash:first-child .tip-dash { left: 0; transform: none; }
 .columna-dash:last-child .tip-dash { left: auto; right: 0; transform: none; }
-.etiquetas-dash { display: flex; margin-left: 2.6rem; margin-top: .15rem; font-size: .72rem; color: var(--apagado); }
+.etiquetas-dash { display: flex; margin-left: 3rem; margin-top: .2rem; font-size: .85rem; color: var(--apagado); }
 .etiquetas-dash span { flex: 1 1 0; text-align: center; }
-.fila-pct { margin-bottom: .35rem; }
-.pista-pct { height: 6px; background: #eef0ee; border-radius: 3px; }
-.relleno-pct { height: 100%; background: var(--serie-1); border-radius: 3px; }
+.fila-pct { margin-bottom: .5rem; }
+.pista-pct { height: 8px; margin-top: .15rem; background: #eef0ee; border-radius: 4px; }
+.relleno-pct { height: 100%; background: var(--serie-1); border-radius: 4px; }
+.acciones-fila { display: flex; justify-content: flex-end; gap: .25rem; }
+/* En el celular cada fila de las tablas del cuaderno es una ficha con sus datos uno debajo del otro */
+@media (max-width: 767px) {
+  .tabla-fichas, .tabla-fichas tbody, .tabla-fichas tfoot, .tabla-fichas tr { display: block; width: 100%; }
+  .tabla-fichas thead { display: none; }
+  .tabla-fichas tbody tr { padding: .4rem 0; border-bottom: 2px solid #dfe6e3; }
+  .tabla-fichas td { display: flex; justify-content: space-between; gap: 1rem; padding: .15rem .25rem; border: 0; text-align: right !important; }
+  .tabla-fichas td:empty { display: none; }
+  .tabla-fichas td[data-label]::before { content: attr(data-label); color: #5b6b65; font-weight: 400; }
+  .tabla-fichas td[colspan] { justify-content: center; }
+  .acciones-fila { width: 100%; margin-top: .25rem; }
+}
+.titulo-panel { font-size: 1.05rem; font-weight: 700; color: var(--marca); }
 .opcion-prenda { min-width: 12rem; }
 .boton-anotar { width: 14rem; max-width: 100%; margin-left: auto; }
 .foto-vacia { display: flex; align-items: center; justify-content: center; width: 3.5rem; height: 3.5rem; font-size: 1.8rem; border-radius: .75rem; background: #dfe6e3; }
@@ -66,7 +84,13 @@ h1, h2 { color: var(--marca); }
 @media (max-width: 575px) {
   .navbar-marca .navbar-brand { font-size: 1.35rem !important; }
   .menu-grupos { width: 100%; flex-wrap: nowrap !important; gap: .35rem !important; }
-  .boton-menu { flex: 1 1 0; white-space: nowrap; --bs-btn-padding-y: .3rem; --bs-btn-padding-x: .1rem; --bs-btn-font-size: .75rem; }
+  .boton-menu { flex: 1 1 0; white-space: nowrap; --bs-btn-padding-y: .35rem; --bs-btn-padding-x: .1rem; --bs-btn-font-size: .9rem; }
+  .plot-dash { height: 140px; }
+  .tarjeta-mini { padding: .5rem .6rem; gap: .45rem; }
+  .tarjeta-mini .icono-mini { font-size: 1.4rem; }
+  .tarjeta-mini .monto-mini { font-size: 1.1rem; white-space: nowrap; }
+  .opcion-prenda { flex: 1 1 100%; }
+  .boton-anotar { width: 100%; }
 }
 .tarjeta-lote { transition: transform .1s; }
 .tarjeta-lote:hover { transform: translateY(-2px); }

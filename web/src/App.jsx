@@ -45,9 +45,10 @@ const MENU = [
 // Menú para mamá: las 3 tablas de su cuaderno y el resumen. Lo demás queda en «opciones completas».
 const MENU_SIMPLE = [
   { id: 'cuaderno', texto: 'Cuaderno', icono: '📒', pestanas: [{ id: 'cuaderno' }] },
-  { id: 'c-ventas', texto: 'Ventas', icono: '💰', pestanas: [{ id: 'c-ventas' }] },
-  { id: 'c-material', texto: 'Material', icono: '🧵', pestanas: [{ id: 'c-material' }] },
-  { id: 'c-gastos', texto: 'Gastos', icono: '🧾', pestanas: [{ id: 'c-gastos' }] },
+  // En el celular se esconden: las 3 tablas ya se abren desde las tarjetas del Cuaderno
+  { id: 'c-ventas', texto: 'Ventas', icono: '💰', soloPc: true, pestanas: [{ id: 'c-ventas' }] },
+  { id: 'c-material', texto: 'Material', icono: '🧵', soloPc: true, pestanas: [{ id: 'c-material' }] },
+  { id: 'c-gastos', texto: 'Gastos', icono: '🧾', soloPc: true, pestanas: [{ id: 'c-gastos' }] },
   { id: 'c-resumen', texto: 'Resumen', icono: '📊', pestanas: [{ id: 'c-resumen' }] },
   {
     id: 'c-disenos', texto: 'Diseños', icono: '👕', pestanas: [
@@ -131,7 +132,7 @@ export default function App() {
             {menu.map((m) => (
               <button
                 key={m.id}
-                className={'btn btn-lg boton-menu ' + (m === grupo ? 'btn-light fw-bold' : 'btn-outline-light')}
+                className={'btn btn-lg boton-menu ' + (m.soloPc ? 'd-none d-sm-inline-block ' : '') + (m === grupo ? 'btn-light fw-bold' : 'btn-outline-light')}
                 onClick={() => ir(m.pestanas[0].id)}
               >
                 <span className="d-block d-sm-inline">{m.icono}</span> {m.texto}

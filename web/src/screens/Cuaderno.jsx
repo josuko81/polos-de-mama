@@ -228,28 +228,28 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
       </div></form>
 
       <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">
-        <table className="table align-middle mb-0">
+        <table className="table align-middle mb-0 tabla-fichas">
           <thead><tr><th>Fecha</th><th>Prenda</th><th className="text-center">Talla</th><th className="text-center">Cant.</th><th className="text-end">Costo</th><th className="text-end">Venta</th><th className="text-end">Ganancia</th><th /></tr></thead>
           <tbody>
             {filas.length === 0 && <tr><td colSpan={8} className="text-secondary text-center py-4">No hay ventas en este mes.</td></tr>}
             {filas.map((x) => (
               <tr key={x.id} className={String(form.id) === String(x.id) ? 'table-warning' : ''}>
-                <td className="text-nowrap">{fechaCorta(x.fecha)}</td>
-                <td>{x.prenda}</td>
-                <td className="text-center">{x.talla || '–'}</td>
-                <td className="text-center">{cantidadDe(x)}</td>
-                <td className="text-end text-nowrap">{soles(x.costo)}</td>
-                <td className="text-end text-nowrap">{soles(x.venta)}</td>
-                <td className="text-end text-nowrap fw-bold text-success">{soles(numero(x.venta) - numero(x.costo))}</td>
-                <td className="text-end text-nowrap">
-                  <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => editar(x)}>Editar</button>
+                <td data-label="Fecha" className="text-nowrap">{fechaCorta(x.fecha)}</td>
+                <td data-label="Prenda">{x.prenda}</td>
+                <td data-label="Talla" className="text-center">{x.talla || '–'}</td>
+                <td data-label="Cantidad" className="text-center">{cantidadDe(x)}</td>
+                <td data-label="Costo" className="text-end text-nowrap">{soles(x.costo)}</td>
+                <td data-label="Venta" className="text-end text-nowrap">{soles(x.venta)}</td>
+                <td data-label="Ganancia" className="text-end text-nowrap fw-bold text-success">{soles(numero(x.venta) - numero(x.costo))}</td>
+                <td><div className="acciones-fila">
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => editar(x)}>Editar</button>
                   <BotonBorrar onConfirmar={() => borrar('cuaderno', x.id, 'Venta borrada')} />
-                </td>
+                </div></td>
               </tr>
             ))}
           </tbody>
           {filas.length > 0 && (
-            <tfoot><tr className="fw-bold"><td colSpan={3}>Total</td><td className="text-center">{filas.reduce((s, x) => s + cantidadDe(x), 0)}</td><td className="text-end text-nowrap">{soles(costo)}</td><td className="text-end text-nowrap">{soles(venta)}</td><td className="text-end text-nowrap text-success">{soles(venta - costo)}</td><td /></tr></tfoot>
+            <tfoot><tr className="fw-bold"><td colSpan={3}>Total del mes</td><td data-label="Cantidad" className="text-center">{filas.reduce((s, x) => s + cantidadDe(x), 0)}</td><td data-label="Costo" className="text-end text-nowrap">{soles(costo)}</td><td data-label="Venta" className="text-end text-nowrap">{soles(venta)}</td><td data-label="Ganancia" className="text-end text-nowrap text-success">{soles(venta - costo)}</td><td /></tr></tfoot>
           )}
         </table>
       </div></div>
@@ -359,20 +359,20 @@ export function ComprasCuaderno({ datos, guardar, borrar, mesFijo }) {
       </div></form>
 
       <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">
-        <table className="table align-middle mb-0">
+        <table className="table align-middle mb-0 tabla-fichas">
           <thead><tr><th>Fecha</th><th>Compras material</th><th className="text-center">Cant.</th><th className="text-end">Costo</th><th /></tr></thead>
           <tbody>
             {filas.length === 0 && <tr><td colSpan={5} className="text-secondary text-center py-4">No hay nada anotado en este mes.</td></tr>}
             {filas.map((g) => (
               <tr key={g.id} className={String(form.id) === String(g.id) ? 'table-warning' : ''}>
-                <td className="text-nowrap">{fechaCorta(g.fecha)}</td>
-                <td>{g.concepto}</td>
-                <td className="text-center">{cantidadDe(g)}</td>
-                <td className="text-end text-nowrap">{soles(g.monto)}</td>
-                <td className="text-end text-nowrap">
-                  <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => editar(g)}>Editar</button>
+                <td data-label="Fecha" className="text-nowrap">{fechaCorta(g.fecha)}</td>
+                <td data-label="Material">{g.concepto}</td>
+                <td data-label="Cantidad" className="text-center">{cantidadDe(g)}</td>
+                <td data-label="Costo" className="text-end text-nowrap">{soles(g.monto)}</td>
+                <td><div className="acciones-fila">
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => editar(g)}>Editar</button>
                   <BotonBorrar onConfirmar={() => borrar('gastos', g.id, 'Borrado')} />
-                </td>
+                </div></td>
               </tr>
             ))}
           </tbody>
@@ -481,19 +481,19 @@ export function GastosCuaderno({ datos, guardar, guardarVarios, borrar, mesFijo 
       </div></form>
 
       <div className="card border-0 shadow-sm"><div className="card-body p-3 p-md-4 table-responsive">
-        <table className="table align-middle mb-0">
+        <table className="table align-middle mb-0 tabla-fichas">
           <thead><tr><th>Fecha</th><th>Gasto mensual</th><th className="text-end">Total</th><th /></tr></thead>
           <tbody>
             {filas.length === 0 && <tr><td colSpan={4} className="text-secondary text-center py-4">No hay nada anotado en este mes.</td></tr>}
             {filas.map((g) => (
               <tr key={g.id} className={String(form.id) === String(g.id) ? 'table-warning' : ''}>
-                <td className="text-nowrap">{fechaCorta(g.fecha)}</td>
-                <td>{g.concepto}</td>
-                <td className="text-end text-nowrap">{soles(g.monto)}</td>
-                <td className="text-end text-nowrap">
-                  <button className="btn btn-sm btn-outline-secondary me-1" onClick={() => editar(g)}>Editar</button>
+                <td data-label="Fecha" className="text-nowrap">{fechaCorta(g.fecha)}</td>
+                <td data-label="Gasto">{g.concepto}</td>
+                <td data-label="Total" className="text-end text-nowrap">{soles(g.monto)}</td>
+                <td><div className="acciones-fila">
+                  <button className="btn btn-sm btn-outline-secondary" onClick={() => editar(g)}>Editar</button>
                   <BotonBorrar onConfirmar={() => borrar('gastos', g.id, 'Borrado')} />
-                </td>
+                </div></td>
               </tr>
             ))}
           </tbody>
@@ -545,8 +545,8 @@ export default function Cuaderno(props) {
       <Encabezado titulo="📒 Cuaderno" mes={mes} setMes={setMes} compacto />
       <div className="row g-2">
         {TARJETAS.map((t) => (
-          <div className="col-6 col-md-4 col-xl" key={t.id}>
-            <button className={'btn border-0 shadow-sm tarjeta-lote tarjeta-mini w-100 h-100 ' + (t.resultado ? (t.total < 0 ? 'btn-danger' : 'btn-success') : 'btn-light')} onClick={() => setAbierta(t.id)}>
+          <div className={(t.id === 'dinero' ? 'col-12' : 'col-6') + ' col-md-4 col-xl'} key={t.id}>
+            <button className={'btn border-0 tarjeta-lote tarjeta-mini w-100 h-100 ' + (t.resultado ? (t.total < 0 ? 'mini-mal' : 'mini-bien') : `mini-${t.id}`)} onClick={() => setAbierta(t.id)}>
               <span className="icono-mini">{t.icono}</span>
               <span>
                 <span className="titulo-mini">{t.titulo}</span>
