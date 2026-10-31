@@ -5,7 +5,7 @@ import Muestra from './Muestra.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
 import { BotonYaPago } from './Clientes.jsx'
 
-const moverMes = (mes, d) => {
+export const moverMes = (mes, d) => {
   let [y, m] = mes.split('-').map(Number)
   m += d
   if (m < 1) { m = 12; y-- }

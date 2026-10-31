@@ -25,6 +25,11 @@ const TABLAS = {
       ['pedidoId', 'Pedido'], ['clienteId', 'Cliente (id)'], ['canal', 'Canal'],
     ],
   },
+  // Tabla 1 del cuaderno de mamá: cada prenda vendida con su costo y su venta
+  cuaderno: {
+    hoja: 'Cuaderno',
+    cols: [['id', 'ID'], ['fecha', 'Fecha'], ['prenda', 'Prenda'], ['costo', 'Costo S/'], ['venta', 'Venta S/']],
+  },
   clientes: {
     hoja: 'Clientes',
     cols: [['id', 'ID'], ['nombre', 'Nombre'], ['telefono', 'Teléfono (WhatsApp)'], ['nota', 'Nota']],
@@ -65,7 +70,7 @@ const TABLAS = {
 const SI_NO = ['pagado', 'acabada'];
 
 const NUMERICOS = ['paso', 'enviados', 'recibidos', 'tela', 'corte', 'confeccion', 'etiquetas', 'otros', 'loteId', 'cantidad', 'precio', 'monto', 'rollos', 'kilos', 'precioKilo',
-  'costo', 'etapa', 'precioTaller'];
+  'costo', 'etapa', 'precioTaller', 'venta'];
 
 function doGet() {
   prepararHojas_();
@@ -129,7 +134,7 @@ function getData() {
   prepararHojas_();
   return {
     lotes: leer_('lotes'), ventas: leer_('ventas'), gastos: leer_('gastos'), disenos: leer_('disenos'),
-    telas: leer_('telas'), talleres: leer_('talleres'), tandas: leer_('tandas'), clientes: leer_('clientes'),
+    telas: leer_('telas'), talleres: leer_('talleres'), tandas: leer_('tandas'), clientes: leer_('clientes'), cuaderno: leer_('cuaderno'),
   };
 }
 

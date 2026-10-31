@@ -10,6 +10,7 @@ import Disenos from './screens/Disenos.jsx'
 import Produccion from './screens/Produccion.jsx'
 import Tela from './screens/Tela.jsx'
 import Clientes from './screens/Clientes.jsx'
+import { VentasCuaderno, GastosCuaderno, ResumenCuaderno } from './screens/Cuaderno.jsx'
 import { registrarDisenos } from './calc.js'
 import Resumen from './screens/Resumen.jsx'
 
@@ -38,13 +39,23 @@ const MENU = [
     ],
   },
 ]
+// Menú para mamá: las 3 tablas de su cuaderno y el resumen. Lo demás queda en «opciones completas».
+const MENU_SIMPLE = [
+  { id: 'c-ventas', texto: 'Ventas', icono: '💰', pestanas: [{ id: 'c-ventas' }] },
+  { id: 'c-material', texto: 'Material', icono: '🧵', pestanas: [{ id: 'c-material' }] },
+  { id: 'c-gastos', texto: 'Gastos', icono: '🧾', pestanas: [{ id: 'c-gastos' }] },
+  { id: 'c-resumen', texto: 'Resumen', icono: '📊', pestanas: [{ id: 'c-resumen' }] },
+]
+const CLAVE_COMPLETO = 'polos-de-mama-opciones-completas'
+const leerCompleto = () => { try { return localStorage.getItem(CLAVE_COMPLETO) === '1' } catch (e) { return false } }
 const esDe = (pestana, p) => pestana.id === p || (pestana.otras || []).includes(p)
-const grupoDe = (p) => MENU.find((g) => g.pestanas.some((t) => esDe(t, p))) || MENU[0]
+const grupoDe = (menu, p) => menu.find((g) => g.pestanas.some((t) => esDe(t, p))) || menu[0]
 
 export default function App() {
   const [datos, setDatos] = useState(null)
   const [error, setError] = useState('')
-  const [pantalla, setPantalla] = useState('inicio')
+  const [completo, setCompleto] = useState(leerCompleto)
+  const [pantalla, setPantalla] = useState(() => (leerCompleto() ? 'inicio' : 'c-ventas'))
   const [loteId, setLoteId] = useState(null)
   const [aviso, setAviso] = useState('')
 
@@ -90,17 +101,24 @@ export default function App() {
 
   if (datos) registrarDisenos(datos.disenos)
   const props = { datos, ir, guardar, guardarVarios, borrar, borrarVarios }
-  const grupo = grupoDe(pantalla)
+  const menu = completo ? MENU : MENU_SIMPLE
+  const grupo = grupoDe(menu, pantalla)
+  const cambiarMenu = () => {
+    const nuevo = !completo
+    try { localStorage.setItem(CLAVE_COMPLETO, nuevo ? '1' : '0') } catch (e) {}
+    setCompleto(nuevo)
+    ir(nuevo ? 'inicio' : 'c-ventas')
+  }
 
   return (
     <>
       <nav className="navbar navbar-dark navbar-marca shadow-sm">
         <div className="container-fluid contenedor">
-          <span className="navbar-brand fw-bold fs-3 cursor-pointer" onClick={() => ir('inicio')}>
+          <span className="navbar-brand fw-bold fs-3 cursor-pointer" onClick={() => ir(menu[0].pestanas[0].id)}>
             👕 Polos de Mamá
           </span>
           <div className="d-flex flex-wrap gap-2 menu-grupos">
-            {MENU.map((m) => (
+            {menu.map((m) => (
               <button
                 key={m.id}
                 className={'btn btn-lg boton-menu ' + (m === grupo ? 'btn-light fw-bold' : 'btn-outline-light')}
@@ -139,6 +157,10 @@ export default function App() {
             <p className="mt-3 fs-5">Cargando tus cuentas…</p>
           </div>
         )}
+        {datos && pantalla === 'c-ventas' && <VentasCuaderno {...props} />}
+        {datos && pantalla === 'c-material' && <GastosCuaderno key="material" {...props} material />}
+        {datos && pantalla === 'c-gastos' && <GastosCuaderno key="gastos" {...props} material={false} />}
+        {datos && pantalla === 'c-resumen' && <ResumenCuaderno {...props} />}
         {datos && pantalla === 'inicio' && <Inicio {...props} />}
         {datos && pantalla === 'vendi' && <Vendi {...props} />}
         {datos && pantalla === 'gaste' && <Gaste {...props} />}
@@ -154,6 +176,9 @@ export default function App() {
         {datos && pantalla === 'tela' && <Tela {...props} />}
         {datos && pantalla === 'clientes' && <Clientes {...props} />}
         {datos && pantalla === 'compra-tela' && <CompraTela {...props} />}
+        <div className="text-center mt-4">
+          <button className="btn btn-link btn-sm text-secondary" onClick={cambiarMenu}>{completo ? 'Volver al cuaderno simple' : 'Ver opciones completas'}</button>
+        </div>
       </main>
 
       {aviso && <div className="alert alert-success shadow aviso fs-5 text-center">✅ {aviso}</div>}
