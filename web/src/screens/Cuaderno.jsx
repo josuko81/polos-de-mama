@@ -2,11 +2,13 @@ import React, { useState } from 'react'
 import { soles, hoy, mesDe, fechaCorta, MESES } from '../calc.js'
 import { moverMes } from './Resumen.jsx'
 import BotonBorrar from './BotonBorrar.jsx'
+import Ventana from './Ventana.jsx'
 
 // Las 3 tablas del cuaderno de mamá, con sus mismas columnas, y el resumen del mes.
 export const CAT_MATERIAL = 'Compra de material'
 const numero = (v) => Number(String(v ?? '').replace(',', '.')) || 0
-const delMes = (lista, mes) => lista.filter((x) => mesDe(x.fecha) === mes).sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
+// Lo último anotado primero: reverse deja arriba lo más nuevo cuando la fecha es la misma
+const delMes = (lista, mes) => lista.filter((x) => mesDe(x.fecha) === mes).reverse().sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)))
 const nombreMes = (mes) => `${MESES[Number(mes.slice(5)) - 1]} ${mes.slice(0, 4)}`
 
 function Encabezado({ titulo, mes, setMes }) {
@@ -63,7 +65,7 @@ export function VentasCuaderno({ datos, guardar, borrar, mesFijo }) {
   const venta = filas.reduce((s, x) => s + numero(x.venta), 0)
   return (
     <>
-      {mesFijo ? <h2 className="fw-bold fs-3 mb-3">1. Ventas</h2> : <Encabezado titulo="💰 Ventas" mes={mes} setMes={setMes} />}
+      {!mesFijo && <Encabezado titulo="💰 Ventas" mes={mes} setMes={setMes} />}
       <div className="card border-0 shadow-sm mb-4"><div className="card-body p-4">
         <div className="row g-3 align-items-end">
           <div className="col-md-2">
@@ -138,9 +140,7 @@ export function GastosCuaderno({ datos, guardar, borrar, material, mesFijo }) {
 
   return (
     <>
-      {mesFijo
-        ? <h2 className="fw-bold fs-3 mb-3 mt-5">{material ? '2. Gastos del mes: compra de material' : '3. Gasto mensual'}</h2>
-        : <Encabezado titulo={material ? '🧵 Compra de material' : '🧾 Gastos del mes'} mes={mes} setMes={setMes} />}
+      {!mesFijo && <Encabezado titulo={material ? '🧵 Compra de material' : '🧾 Gastos del mes'} mes={mes} setMes={setMes} />}
       <div className="card border-0 shadow-sm mb-4"><div className="card-body p-4">
         <div className="row g-3 align-items-end">
           <div className="col-md-3">
@@ -180,15 +180,41 @@ export function GastosCuaderno({ datos, guardar, borrar, material, mesFijo }) {
   )
 }
 
-// El cuaderno completo: las 3 tablas en una sola página, del mismo mes
+// El cuaderno: una tarjeta por tabla con su total del mes; al tocarla se abre para anotar
 export default function Cuaderno(props) {
+  const { datos } = props
   const [mes, setMes] = useState(mesDe(hoy()))
+  const [abierta, setAbierta] = useState(null) // id de la tabla abierta
+  const gastos = delMes(datos.gastos || [], mes)
+  const sumar = (lista) => lista.reduce((s, g) => s + numero(g.monto), 0)
+  const TABLAS = [
+    { id: 'ventas', icono: '💰', titulo: 'Ventas', total: delMes(datos.cuaderno || [], mes).reduce((s, x) => s + numero(x.venta), 0) },
+    { id: 'material', icono: '🧵', titulo: 'Compra de material', total: sumar(gastos.filter((g) => g.categoria === CAT_MATERIAL)) },
+    { id: 'gastos', icono: '🧾', titulo: 'Gasto mensual', total: sumar(gastos.filter((g) => g.categoria !== CAT_MATERIAL)) },
+  ]
+  const tabla = TABLAS.find((t) => t.id === abierta)
   return (
     <>
       <Encabezado titulo="📒 Cuaderno" mes={mes} setMes={setMes} />
-      <VentasCuaderno {...props} mesFijo={mes} />
-      <GastosCuaderno {...props} material mesFijo={mes} />
-      <GastosCuaderno {...props} material={false} mesFijo={mes} />
+      <div className="row g-3">
+        {TABLAS.map((t) => (
+          <div className="col-md-4" key={t.id}>
+            <button className="btn btn-light border-0 shadow-sm tarjeta-lote w-100 h-100 text-start p-4" onClick={() => setAbierta(t.id)}>
+              <span className="d-block mb-2" style={{ fontSize: '2.6rem' }}>{t.icono}</span>
+              <span className="d-block fs-4 fw-bold text-marca">{t.titulo}</span>
+              <span className="d-block small text-secondary">Total de {MESES[Number(mes.slice(5)) - 1]}</span>
+              <span className="d-block numero-grande">{soles(t.total)}</span>
+            </button>
+          </div>
+        ))}
+      </div>
+      {tabla && (
+        <Ventana titulo={`${tabla.icono} ${tabla.titulo} · ${nombreMes(mes)}`} onCerrar={() => setAbierta(null)}>
+          {tabla.id === 'ventas'
+            ? <VentasCuaderno {...props} mesFijo={mes} />
+            : <GastosCuaderno key={tabla.id} {...props} material={tabla.id === 'material'} mesFijo={mes} />}
+        </Ventana>
+      )}
     </>
   )
 }
